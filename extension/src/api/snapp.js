@@ -9,11 +9,11 @@
 import { getSession, setSession } from '../util/store.js';
 import { pooled } from '../util/pool.js';
 import { normalize } from '../util/text.js';
+import { accessToken } from '../auth/index.js';
 
 const BASE = 'https://svc.snapp.market';
 const APP_VERSION = '1.399.10';
 const PAGE_SIZE = 20;
-const SESSION_TOKEN_KEY = 'snappSessionToken'; // written by the content script when logged in
 const UDID_KEY = 'snappUdid';
 
 const COMMON_HEADERS = {
@@ -30,15 +30,6 @@ async function getUdid() {
     await setSession(UDID_KEY, udid);
   }
   return udid;
-}
-
-function jwtExpiry(token) {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return (payload.exp || 0) * 1000;
-  } catch {
-    return 0;
-  }
 }
 
 /**
@@ -58,10 +49,9 @@ export class NotSignedInError extends Error {
 }
 
 export async function getToken() {
-  const session = await getSession(SESSION_TOKEN_KEY);
-  if (!session?.token) throw new NotSignedInError();
-  if (jwtExpiry(session.token) <= Date.now() + 60_000) throw new NotSignedInError();
-  return { token: session.token, authenticated: true };
+  const token = await accessToken('snapp');
+  if (!token) throw new NotSignedInError();
+  return { token, authenticated: true };
 }
 
 async function call(path, params, { token }) {

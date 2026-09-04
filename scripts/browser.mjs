@@ -34,16 +34,23 @@ const id = new URL(worker.url()).host;
 
 worker.on('console', (m) => console.log(`[sw ${m.type()}]`, m.text()));
 
-// Load snapp.market first so the content script hands over the live token and
-// the saved addresses before the popup opens.
+// Load snapp.market first so the content script hands over the saved addresses
+// before the popup opens. Authentication is the extension's own — sign in from
+// the popup's panel.
 const snappTab = ctx.pages()[0] || (await ctx.newPage());
 await snappTab.goto('https://snapp.market/', { waitUntil: 'domcontentloaded' });
 await snappTab.waitForTimeout(9000);
 
 const captured = await worker.evaluate(async () => {
-  const s = await chrome.storage.local.get(['snappSessionToken', 'snappAddresses', 'location']);
+  const s = await chrome.storage.local.get([
+    'auth:snapp',
+    'auth:jet',
+    'snappAddresses',
+    'location',
+  ]);
   return {
-    loggedIn: Boolean(s.snappSessionToken?.token),
+    snapp: Boolean(s['auth:snapp']?.accessToken),
+    jet: Boolean(s['auth:jet']?.accessToken),
     addresses: (s.snappAddresses || []).map((a) => a.label),
     location: s.location,
   };
@@ -55,7 +62,8 @@ await popup.bringToFront();
 
 console.log('\n────────────────────────────────────────────');
 console.log('extension id :', id);
-console.log('logged in    :', captured.loggedIn ? 'بله' : 'خیر');
+console.log('snapp login  :', captured.snapp ? 'بله' : 'خیر — از پنل افزونه وارد شو');
+console.log('jet login    :', captured.jet ? 'بله' : 'خیر — اختیاری');
 console.log('addresses    :', captured.addresses.join(' | ') || '(none)');
 console.log('location     :', captured.location?.label || '(not set)');
 console.log('popup tab    :', `chrome-extension://${id}/popup/popup.html`);

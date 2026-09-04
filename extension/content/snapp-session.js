@@ -1,49 +1,10 @@
-// Lifts the signed-in session and the saved addresses out of the Snapp Market
-// PWA so the extension can query the API as the signed-in user (Pro pricing,
-// the campaign line-up that actually applies to the account). Runs only on
-// snapp.market.
+// Copies the addresses you have already saved on snapp.market into the
+// extension, so you can pick one instead of typing coordinates.
 //
-// The token has lived in two places across site builds — the persisted redux
-// slice and a bare `JWT` key — and the slice is empty for part of the session's
-// life. Scanning every key and picking a live, account-bound JWT is what keeps
-// this working; anything less silently downgrades the extension to an anonymous
-// session, which is served a different (new-user) campaign.
-
-function decodeClaims(jwt) {
-  try {
-    return JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-  } catch {
-    return null;
-  }
-}
-
-const JWT_PATTERN = /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g;
-
-/** Every end-user JWT in localStorage, newest-usable first. */
-function findTokens() {
-  const found = [];
-  for (const key of Object.keys(localStorage)) {
-    const value = localStorage.getItem(key) || '';
-    for (const jwt of value.match(JWT_PATTERN) || []) {
-      const claims = decodeClaims(jwt);
-      if (claims?.aud !== 'end_user_api') continue;
-      found.push({
-        token: jwt,
-        subject: claims.sub || '',
-        userCode: claims.userCode || null,
-        expiresAt: (claims.exp || 0) * 1000,
-      });
-    }
-  }
-  // A token with a `sub` belongs to the account; one without is the site's own
-  // anonymous grant, which the extension can mint for itself anyway.
-  return found
-    .filter((entry) => entry.expiresAt > Date.now() + 60_000)
-    .sort(
-      (a, b) =>
-        Number(Boolean(b.subject)) - Number(Boolean(a.subject)) || b.expiresAt - a.expiresAt,
-    );
-}
+// It used to lift the site's bearer token too. That token lives about an hour
+// and comes with no way to renew it, which is why the extension kept asking you
+// to sign in again — so authentication moved into the extension itself and this
+// script is back to doing one small thing.
 
 function readAddresses() {
   try {
@@ -60,6 +21,7 @@ function readAddresses() {
         lat: Number(address.latitude),
         lng: Number(address.longitude),
         city: address.city?.title || '',
+        source: 'snapp',
       }));
   } catch {
     return [];
@@ -69,26 +31,14 @@ function readAddresses() {
 let lastSent = null;
 
 function sync() {
-  const [best] = findTokens();
   const addresses = readAddresses();
-
-  // Report the signed-out state too: the popup needs to say so rather than
-  // quietly serving anonymous prices.
-  const payload = {
-    token: best?.subject ? best.token : null,
-    subject: best?.subject || null,
-    expiresAt: best?.expiresAt || null,
-    addresses,
-    capturedAt: Date.now(),
-  };
-
-  const fingerprint = `${payload.token}|${addresses.length}`;
+  if (!addresses.length) return;
+  const fingerprint = addresses.map((a) => a.id).join(',');
   if (fingerprint === lastSent) return;
   lastSent = fingerprint;
-  chrome.runtime.sendMessage({ type: 'snapp-session', payload }).catch(() => {});
+  chrome.runtime.sendMessage({ type: 'snapp-session', payload: { addresses } }).catch(() => {});
 }
 
 sync();
-// The PWA writes the token shortly after boot and refreshes it periodically.
 setTimeout(sync, 3000);
-setInterval(sync, 30_000);
+setInterval(sync, 60_000);

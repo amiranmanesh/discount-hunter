@@ -1,6 +1,7 @@
 // Service worker: owns the network calls, session capture and result cache.
 import { hunt, suggestions } from './src/core/hunt.js';
 import * as jet from './src/api/jet.js';
+import * as auth from './src/auth/index.js';
 import { getState, setState, setSession, getSession, rememberQuery } from './src/util/store.js';
 
 const LAST_RESULT_KEY = 'lastResult';
@@ -24,6 +25,21 @@ async function handle(message) {
       return storeSnappSession(message.payload);
     case 'jet-session':
       return storeJetSession(message.payload);
+    case 'auth-status':
+      return auth.status();
+    case 'auth-request-code':
+      return auth.requestCode({ ...message, location: (await getState()).location });
+    case 'auth-verify-code': {
+      const result = await auth.verifyCode({
+        ...message,
+        location: (await getState()).location,
+      });
+      // A fresh Jet session unlocks its saved addresses.
+      if (message.platform === 'jet') await setSession('jetAddresses', await jet.savedAddresses());
+      return result;
+    }
+    case 'auth-signout':
+      return auth.signOut(message.platform);
     case 'get-state':
       return {
         ...(await getState()),
@@ -34,7 +50,7 @@ async function handle(message) {
           })),
           ...((await getSession('jetAddresses')) || []),
         ],
-        session: await sessionSummary(),
+        session: await auth.status(),
         lastResult: await getSession(LAST_RESULT_KEY),
       };
     case 'set-state':
@@ -46,13 +62,6 @@ async function handle(message) {
     case 'open-url':
       await chrome.tabs.create({ url: message.url, active: true });
       return true;
-    case 'open-signin': {
-      const [existing] = await chrome.tabs.query({ url: 'https://snapp.market/*' });
-      if (existing)
-        await chrome.tabs.update(existing.id, { active: true, url: 'https://snapp.market/' });
-      else await chrome.tabs.create({ url: 'https://snapp.market/', active: true });
-      return true;
-    }
     case 'clear-result':
       await setSession(LAST_RESULT_KEY, null);
       return true;
@@ -64,20 +73,8 @@ async function handle(message) {
 async function storeSnappSession(payload) {
   if (!payload) return false;
 
-  // A signed-out tab reports `token: null`; clear the stale one rather than
-  // keeping a token the account no longer has.
-  await setSession(
-    'snappSessionToken',
-    payload.token
-      ? {
-          token: payload.token,
-          subject: payload.subject,
-          expiresAt: payload.expiresAt,
-          capturedAt: payload.capturedAt,
-        }
-      : null,
-  );
-
+  // Authentication is the extension's own now; the content script is here only
+  // to save the user retyping an address they already have on the site.
   if (payload.addresses?.length) {
     await setSession('snappAddresses', payload.addresses);
     const { location } = await getState();
@@ -114,29 +111,14 @@ async function storeJetSession(payload) {
   return true;
 }
 
-async function sessionSummary() {
-  const jetSession = await getSession('jetSessionToken');
-  const jetLive = Boolean(jetSession?.token) && !(jetSession.expiresAt < Date.now());
-
-  const session = await getSession('snappSessionToken');
-  if (!session?.token) return { snappLoggedIn: false, jetLoggedIn: jetLive };
-  const expired = session.expiresAt && session.expiresAt < Date.now();
-  return {
-    snappLoggedIn: !expired,
-    expired: Boolean(expired),
-    capturedAt: session.capturedAt,
-    jetLoggedIn: jetLive,
-  };
-}
-
 async function runHunt({ query, location, options }) {
   if (!query?.trim()) throw new Error('نام یا کد کالا را وارد کن');
   if (!location?.lat || !location?.lng) throw new Error('اول موقعیت مکانی را مشخص کن');
 
   // No guest mode. A guest session sees a different campaign and different
   // eligibility, so its prices answer a question the user did not ask.
-  const { snappLoggedIn } = await sessionSummary();
-  if (!snappLoggedIn) {
+  const { snapp } = await auth.status();
+  if (!snapp?.linked) {
     const error = new Error('برای جستجو باید در یک تب snapp.market وارد حسابت باشی');
     error.notSignedIn = true;
     throw error;

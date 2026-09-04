@@ -102,7 +102,7 @@ describe('jet session', () => {
   it('sends the token bare, without a Bearer prefix', async () => {
     // Jet's own web app sends `authorization: <jwt>`; adding `Bearer ` breaks it.
     await chrome.storage.local.set({
-      jetSessionToken: { token: 'jet.jwt.value', expiresAt: Date.now() + 3600_000 },
+      'auth:jet': { accessToken: 'jet.jwt.value', expiresAt: Date.now() + 3600_000 },
     });
     const fetchMock = mockJet([item()]);
 
@@ -113,7 +113,11 @@ describe('jet session', () => {
 
   it('ignores an expired token rather than sending it', async () => {
     await chrome.storage.local.set({
-      jetSessionToken: { token: 'jet.jwt.value', expiresAt: Date.now() - 1000 },
+      'auth:jet': {
+        accessToken: 'jet.jwt.value',
+        expiresAt: Date.now() - 1000,
+        refreshToken: null,
+      },
     });
     const fetchMock = mockJet([item()]);
 
@@ -128,7 +132,7 @@ describe('jet session', () => {
 
   it('maps saved addresses once a token is stored', async () => {
     await chrome.storage.local.set({
-      jetSessionToken: { token: 'jet.jwt.value', expiresAt: Date.now() + 3600_000 },
+      'auth:jet': { accessToken: 'jet.jwt.value', expiresAt: Date.now() + 3600_000 },
     });
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,

@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **The content scripts no longer read tokens.** They copy the delivery point and
+  the saved addresses, and nothing else.
 - **The first-order shelf is never read.** `personalizedProducts` — the
   "ویژه خرید اول" list — is no longer fetched into the offer pool at all, only
   counted so the popup can say what it left out. Filtering it after the fact was

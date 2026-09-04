@@ -26,6 +26,30 @@ export function storageReset() {
   store.clear();
 }
 
+/** A JWT whose only job is to carry an expiry the session store accepts. */
+export function fakeJwt(secondsFromNow = 3600) {
+  const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  return `${encode({ alg: 'none' })}.${encode({ exp: Math.floor(Date.now() / 1000) + secondsFromNow })}.sig`;
+}
+
+/** Puts a live session in storage, the way a successful OTP login would. */
+export async function signIn(
+  platform = 'snapp',
+  { secondsFromNow = 3600, refreshToken = 'r' } = {},
+) {
+  const accessToken = fakeJwt(secondsFromNow);
+  await chrome.storage.local.set({
+    [`auth:${platform}`]: {
+      accessToken,
+      refreshToken,
+      subject: '09123456789',
+      expiresAt: Date.now() + secondsFromNow * 1000,
+      createdAt: Date.now(),
+    },
+  });
+  return accessToken;
+}
+
 beforeEach(() => {
   storageReset();
   vi.restoreAllMocks();

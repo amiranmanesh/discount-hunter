@@ -1,12 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { signIn } from './setup.js';
 import { collectOrangeOffers, searchOffers } from '../extension/src/api/snapp.js';
-
-/** A JWT whose only job is to have an `exp` the client accepts. */
-function fakeJwt(secondsFromNow = 3600) {
-  const payload = { exp: Math.floor(Date.now() / 1000) + secondsFromNow };
-  const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
-  return `${encode({ alg: 'none' })}.${encode(payload)}.sig`;
-}
 
 const LOCATION = { lat: 35.722358, lng: 51.47813 };
 
@@ -56,9 +50,7 @@ function mockSnapp(routes) {
 }
 
 beforeEach(async () => {
-  await chrome.storage.local.set({
-    snappSessionToken: { token: fakeJwt(), capturedAt: Date.now() },
-  });
+  await signIn('snapp');
 });
 
 describe('collectOrangeOffers', () => {
@@ -245,7 +237,7 @@ describe('authentication', () => {
   it('refuses to search without a session rather than falling back to a guest one', async () => {
     // A guest session is a different account with a different campaign, so an
     // answer built from it answers a question the user did not ask.
-    await chrome.storage.local.set({ snappSessionToken: null });
+    await chrome.storage.local.set({ 'auth:snapp': null });
     const fetchMock = mockSnapp({
       '/market-party/35.722358': { data: { total_count: 0, vendors: [] } },
     });
@@ -257,7 +249,7 @@ describe('authentication', () => {
   });
 
   it('refuses an expired session token too', async () => {
-    await chrome.storage.local.set({ snappSessionToken: { token: fakeJwt(-10) } });
+    await signIn('snapp', { secondsFromNow: -10, refreshToken: null });
     await expect(collectOrangeOffers({ ...LOCATION, maxVendors: 1 })).rejects.toMatchObject({
       notSignedIn: true,
     });

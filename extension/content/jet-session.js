@@ -1,10 +1,9 @@
 // Picks up the Digikala Jet session and delivery point so the extension can
 // search the same neighbourhood and offer the same saved addresses.
 //
-// Jet keeps its token in the persisted `persist:DKNow` store and sends it as a
-// bare `authorization` header — no `Bearer` prefix. Search results are identical
-// with or without it, so the token is a convenience (saved addresses), not a
-// requirement.
+// Authentication is the extension's own now, so this only reports the delivery
+// point the app has picked — enough to prefill the location without typing
+// coordinates.
 
 function readStore(key) {
   try {
@@ -13,30 +12,6 @@ function readStore(key) {
   } catch {
     return null;
   }
-}
-
-function readSession() {
-  const store = readStore('persist:DKNow');
-  if (!store) return null;
-  let user = store.user;
-  if (typeof user === 'string') {
-    try {
-      user = JSON.parse(user);
-    } catch {
-      return null;
-    }
-  }
-  if (!user?.token) return null;
-
-  let expiresAt = null;
-  try {
-    const claims = JSON.parse(atob(user.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    expiresAt = (claims.expire_time || 0) * 1000;
-  } catch {
-    /* unparsable token: still usable, just unknown expiry */
-  }
-
-  return { token: user.token, userId: user.userId ?? null, expiresAt };
 }
 
 /** Falls back to whatever delivery point the app has picked for a signed-out visitor. */
@@ -66,13 +41,13 @@ function readLocation() {
 let lastSent = null;
 
 function sync() {
-  const session = readSession();
   const location = readLocation();
-  const fingerprint = `${session?.token || ''}|${location?.lat || ''}`;
+  if (!location) return;
+  const fingerprint = `${location.lat},${location.lng}`;
   if (fingerprint === lastSent) return;
   lastSent = fingerprint;
   chrome.runtime
-    .sendMessage({ type: 'jet-session', payload: { session, location, capturedAt: Date.now() } })
+    .sendMessage({ type: 'jet-session', payload: { location, capturedAt: Date.now() } })
     .catch(() => {});
 }
 

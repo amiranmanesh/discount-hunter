@@ -5,7 +5,7 @@
 //   GET /products/search/shop/{shopId}/?q=                    -> search inside one shop
 //
 // Jet needs no authentication for search, but every price is in Rial.
-import { getSession } from '../util/store.js';
+import { accessToken } from '../auth/index.js';
 
 const BASE = 'https://api.digikalajet.ir';
 const RIAL_TO_TOMAN = 10;
@@ -23,10 +23,8 @@ const HEADERS = {
  * the token bare, with no `Bearer` prefix.
  */
 async function authHeaders() {
-  const session = await getSession('jetSessionToken');
-  if (!session?.token) return {};
-  if (session.expiresAt && session.expiresAt < Date.now()) return {};
-  return { authorization: session.token };
+  const token = await accessToken('jet');
+  return token ? { authorization: token } : {};
 }
 
 async function call(path, params) {
@@ -40,8 +38,7 @@ async function call(path, params) {
 
 /** The account's saved delivery addresses, or an empty list when signed out. */
 export async function savedAddresses() {
-  const session = await getSession('jetSessionToken');
-  if (!session?.token) return [];
+  if (!(await accessToken('jet'))) return [];
   try {
     const json = await call('/address/', {});
     return (json?.data?.addresses || [])

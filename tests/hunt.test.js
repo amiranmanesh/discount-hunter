@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { signIn } from './setup.js';
 import { hunt } from '../extension/src/core/hunt.js';
-
-function fakeJwt(secondsFromNow = 3600) {
-  const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
-  return `${encode({ alg: 'none' })}.${encode({ exp: Math.floor(Date.now() / 1000) + secondsFromNow })}.sig`;
-}
 
 const LOCATION = { lat: 35.722358, lng: 51.47813 };
 
@@ -65,7 +61,7 @@ function mockShelf({ general = [], firstOrder = [], storeShelf }) {
 }
 
 beforeEach(async () => {
-  await chrome.storage.local.set({ snappSessionToken: { token: fakeJwt() } });
+  await signIn('snapp');
 });
 
 describe('hunt', () => {
