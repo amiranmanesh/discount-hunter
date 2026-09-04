@@ -302,6 +302,11 @@ function renderResults(result, { cached }) {
       `${money.format(stats.targetedSkipped)} پیشنهاد «کاربر جدید» کنار گذاشته شد؛ این قیمت‌ها برای حساب شما اعمال نمی‌شود.`,
     );
   }
+  if (stats.unlisted) {
+    notes.push(
+      `${money.format(stats.unlisted)} پیشنهاد حذف شد چون در قفسه‌ی خود فروشگاه پیدا نشد.`,
+    );
+  }
   if (!stats.authenticated) {
     notes.push('بدون حساب متصل — قیمت‌ها مهمان است و ممکن است با فروشگاه فرق کند.');
   }
@@ -352,6 +357,7 @@ function renderOffer(offer, isTop) {
   node.querySelector('.vendor-meta').textContent = meta.join(' · ');
 
   const totals = [`جمع با ارسال: ${toman(totalCost(offer))}`];
+  if (offer.verified) totals.push('✓ قیمت از خود فروشگاه');
   if (offer.vendor.minOrder) totals.push(`حداقل سبد ${toman(offer.vendor.minOrder)}`);
   node.querySelector('.total-cost').textContent = totals.join(' · ');
 

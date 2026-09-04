@@ -13,6 +13,7 @@ export async function hunt({ query, location, options, onProgress }) {
     onlyOrange = true,
     onlyOpen = true,
     includeTargeted = false,
+    verifyTop = 6,
     minDiscount = 0,
     maxVendors = 60,
   } = options || {};
@@ -104,14 +105,41 @@ export async function hunt({ query, location, options, onProgress }) {
   );
   const matched = strict.length ? strict : relaxed;
 
+  let ranked = rank(dedupe(matched), sortMode);
+
+  // The campaign feed is a promotion, not a price list: check the offers that
+  // would actually be shown first against the stores' own shelves, and drop the
+  // ones the store does not list. This is what stops a segmented 39,000 Toman
+  // cola from being presented as the winning price.
+  let unlisted = 0;
+  if (verifyTop > 0 && sources.snapp) {
+    const head = ranked.slice(0, verifyTop).filter((offer) => offer.platform === 'snapp');
+    if (head.length) {
+      const checked = await snapp.verifyOffers(head, { lat, lng }).catch((error) => {
+        errors.push(`راستی‌آزمایی اسنپ‌مارکت: ${error.message}`);
+        return head; // keep the unverified offers rather than losing them
+      });
+      const replacements = new Map();
+      head.forEach((offer, index) => replacements.set(offer, checked[index] ?? null));
+      unlisted = checked.filter((offer) => offer === null).length;
+      ranked = rank(
+        ranked
+          .map((offer) => (replacements.has(offer) ? replacements.get(offer) : offer))
+          .filter(Boolean),
+        sortMode,
+      );
+    }
+  }
+
   return {
     query,
-    offers: rank(dedupe(matched), sortMode),
+    offers: ranked,
     stats: {
       scanned: pool.length,
       matched: matched.length,
       relaxed: strict.length === 0 && relaxed.length > 0,
       targetedSkipped,
+      unlisted,
       vendorCount,
       authenticated,
       campaignEnds,

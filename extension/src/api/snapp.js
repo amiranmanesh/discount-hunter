@@ -8,6 +8,7 @@
 //   GET  /mobile/v3/product-vendors/search?query=   -> cross-vendor catalogue search
 import { getSession, setSession } from '../util/store.js';
 import { pooled } from '../util/pool.js';
+import { normalize } from '../util/text.js';
 
 const BASE = 'https://svc.snapp.market';
 const APP_VERSION = '1.399.10';
@@ -372,6 +373,69 @@ export async function searchOffers(query, { lat, lng, pages = 2 }) {
     });
   }
   return offers;
+}
+
+/**
+ * Re-prices an offer against the vendor's own shelf.
+ *
+ * The campaign feed and the store page can disagree — a segmented row quotes a
+ * price the account cannot actually pay — so the winning offers are checked
+ * against `/mobile/v2/product-variation/search`, which is what the store page
+ * itself calls. Returns the offer with the store's numbers, or `null` when the
+ * store does not list the product at all.
+ */
+export async function verifyOffer(offer, { lat, lng }) {
+  const { token } = await getToken();
+  const json = await call(
+    '/mobile/v2/product-variation/search',
+    {
+      query: offer.title,
+      vendorCode: offer.vendor.code,
+      firstPage: 'true',
+      page: '0',
+      page_size: '10',
+      size: '10',
+      origin: 'vp-search',
+      source: '2',
+      latitude: String(lat),
+      longitude: String(lng),
+      lat: String(lat),
+      long: String(lng),
+    },
+    { token },
+  );
+
+  const rows = json?.data?.result || [];
+  // Campaign rows and shelf rows do not always share a product id, so fall back
+  // to the canonical title, which both endpoints spell the same way.
+  const wanted = normalize(offer.title);
+  const match =
+    rows.find((row) => String(row.id) === offer.productId) ||
+    rows.find((row) => normalize(row.title) === wanted);
+
+  if (!match) return null;
+
+  const price = Number(match.price ?? 0);
+  const discount = Number(match.discount ?? 0);
+  return {
+    ...offer,
+    verified: true,
+    price,
+    finalPrice: Math.max(price - discount, 0),
+    discountAmount: discount,
+    discountPercent: Number(match.discountRatio ?? 0),
+    stock: Number(match.stock ?? offer.stock),
+    outOfStock: Number(match.stock ?? 1) <= 0,
+    campaignPrice: offer.finalPrice, // what the campaign feed had claimed
+  };
+}
+
+/** Verifies several offers at once, dropping the ones the stores do not list. */
+export async function verifyOffers(offers, { lat, lng, concurrency = 4 }) {
+  const checked = await pooled(offers, concurrency, (offer) => verifyOffer(offer, { lat, lng }));
+  return checked.map((result, index) =>
+    result?.__error ? { ...offers[index], verified: false } : result,
+  );
 }
 
 /** Raw catalogue search hits (product@vendor pairs). */

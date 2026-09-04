@@ -8,6 +8,7 @@ export const DEFAULTS = {
   onlyOpen: true,
   minDiscount: 0,
   maxVendors: 60,
+  verifyTop: 6, // re-price this many leading offers against the stores' own shelves
   recentQueries: [],
 };
 
