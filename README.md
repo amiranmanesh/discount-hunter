@@ -83,6 +83,17 @@ two, and how to build each: [docs/BROWSER-SUPPORT.md](docs/BROWSER-SUPPORT.md).
 To build store-ready archives instead: `npm install && npm run package`, then
 load or upload `release/discount-hunter-<version>-<target>.zip`.
 
+### Sign in
+
+Open the popup's **حساب‌ها** panel and sign in with your phone number and the SMS
+code, one platform at a time. **Snapp Market is required** — a guest sees a
+different campaign at different prices, so the extension refuses to search
+without it. **Digikala Jet is optional**: its search needs no token, and signing
+in only adds that account's saved addresses.
+
+The extension holds its own refresh token, so a session renews itself instead of
+expiring after an hour the way a token borrowed from the website does.
+
 ### Set your delivery point
 
 Every price and delivery fee depends on where you are.

@@ -568,3 +568,8 @@ button {
 .account-note.error {
   color: var(--jet);
 }
+
+.chip.warn {
+  border-color: var(--orange);
+  color: var(--orange);
+}

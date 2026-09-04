@@ -25,6 +25,10 @@ const ui = {
   progressText: el('progressText'),
   banner: el('banner'),
   signinGate: el('signinGate'),
+  accountsChip: el('accountsChip'),
+  accountsLabel: el('accountsLabel'),
+  accountsPanel: el('accountsPanel'),
+  closeAccounts: el('closeAccounts'),
   accounts: el('accounts'),
   accountTemplate: el('accountTemplate'),
   results: el('results'),
@@ -90,14 +94,34 @@ const PLATFORMS = [
   { id: 'jet', name: 'دیجی‌کالا جت', required: false },
 ];
 
-/** No Snapp session, no search: a guest sees a different campaign and different prices. */
+/**
+ * Only Snapp Market gates the search: a guest there sees a different campaign
+ * and different prices. Digikala Jet is optional — its search needs no token, so
+ * signing in only adds that account's saved addresses.
+ */
 function applySignInState(status) {
   const signedIn = Boolean(status?.snapp?.linked);
   ui.signinGate.hidden = signedIn;
   ui.searchButton.disabled = !signedIn || busy;
   ui.queryInput.disabled = !signedIn;
-  if (!signedIn) renderAccounts(status);
+
+  const linked = PLATFORMS.filter((platform) => status?.[platform.id]?.linked).length;
+  ui.accountsLabel.textContent = `حساب‌ها ${money.format(linked)}/${money.format(PLATFORMS.length)}`;
+  ui.accountsChip.classList.toggle('warn', !signedIn);
+
+  // The panel stays reachable after the gate closes, so Jet can still be linked
+  // and either account signed out.
+  renderAccounts(status);
+  if (!signedIn) ui.accountsPanel.hidden = false;
 }
+
+ui.accountsChip.addEventListener('click', () => {
+  ui.accountsPanel.hidden = !ui.accountsPanel.hidden;
+  ui.locationPanel.hidden = true;
+});
+ui.closeAccounts.addEventListener('click', () => {
+  ui.accountsPanel.hidden = true;
+});
 
 function renderAccounts(status) {
   ui.accounts.replaceChildren();
@@ -223,7 +247,7 @@ function renderAccount(platform, state) {
         code: code.value.trim(),
       });
       clearInterval(timer);
-      await refreshAccounts();
+      await refreshAccounts({ closeWhenDone: platform.id === 'snapp' });
     } catch (error) {
       setNote(error.message, true);
     } finally {
@@ -237,12 +261,13 @@ function renderAccount(platform, state) {
   return node;
 }
 
-async function refreshAccounts() {
+async function refreshAccounts({ closeWhenDone = false } = {}) {
   const status = await send({ type: 'auth-status' }).catch(() => null);
-  if (status) {
-    state = { ...state, session: status };
-    applySignInState(status);
-  }
+  if (!status) return null;
+  state = { ...state, session: status };
+  applySignInState(status);
+  if (closeWhenDone && status.snapp?.linked) ui.accountsPanel.hidden = true;
+  return status;
 }
 
 /* ---------- location ---------- */
@@ -291,6 +316,7 @@ async function applyLocation(location) {
 
 ui.locationChip.addEventListener('click', () => {
   ui.locationPanel.hidden = !ui.locationPanel.hidden;
+  ui.accountsPanel.hidden = true;
 });
 ui.closeLocation.addEventListener('click', () => {
   ui.locationPanel.hidden = true;

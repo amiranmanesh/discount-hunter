@@ -31,6 +31,23 @@ npm run package     # → release/discount-hunter-<version>-chrome.zip
 Unzip it and load the resulting folder the same way, or drag the `.zip` onto
 `chrome://extensions` with Developer mode on.
 
+## Sign in
+
+Open the popup and use the **حساب‌ها** panel: phone number, then the code that is
+texted to you. One panel per platform.
+
+**Snapp Market is required** — its prices and eligibility depend on the account,
+and a guest sees a different campaign, so the extension refuses to search without
+it. **Digikala Jet is optional**: its search takes no token, and signing in there
+only adds that account's saved addresses to the location picker.
+
+The panel stays reachable from the header (`حساب‌ها ۱/۲`) after you are in, for
+linking the second account or signing out.
+
+Codes are rate-limited on purpose: two minutes between codes, five per fifteen
+minutes, five attempts per code. If a platform pushes back, the wait it asks for
+is honoured.
+
 ## Set your delivery point
 
 Every price, delivery fee and discount depends on where you are, so nothing works

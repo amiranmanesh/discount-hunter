@@ -49,6 +49,21 @@ account. Some campaign items are also segmented — `segment: new_user` offers
 appear in the API but may not apply to your account. Prices change during the day,
 too; the campaign period end is part of every response.
 
+## It keeps asking me to sign in
+
+Fixed in 1.0.1. The extension used to read the website's token out of a tab, and
+that token expires about an hour after it is minted with no way to renew it. It
+now signs in itself, holds the refresh token, and renews the session before a
+request rather than after one fails.
+
+If it still happens, sign out from the **حساب‌ها** panel and sign in again — that
+clears a session whose refresh token the platform has revoked.
+
+## Do I have to sign in to both?
+
+No. Snapp Market is required; Digikala Jet is optional and its results appear
+either way. Signing in to Jet only adds that account's saved addresses.
+
 ## The popup says the location is not set
 
 Either open `snapp.market` signed in and reopen the popup, or click the chip and

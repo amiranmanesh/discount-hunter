@@ -18,6 +18,9 @@
       <button id="locationChip" class="chip" type="button" title="تغییر موقعیت">
         <span class="pin">◎</span><span id="locationLabel">موقعیت تنظیم نشده</span>
       </button>
+      <button id="accountsChip" class="chip" type="button" title="حساب‌ها">
+        <span class="pin">◍</span><span id="accountsLabel">حساب‌ها</span>
+      </button>
     </header>
 
     <section id="locationPanel" class="panel" hidden>
@@ -77,7 +80,18 @@
         قیمت‌ها و شرایط خرید به حساب تو بستگی دارد. بدون نشست تو، افزونه قیمتی نشان می‌دهد که مال
         حساب دیگری است — پس اصلاً جستجو نمی‌کند.
       </p>
+    </section>
+
+    <section id="accountsPanel" class="panel" hidden>
+      <h2>حساب‌ها</h2>
       <div id="accounts" class="accounts"></div>
+      <p class="hint">
+        <b>اسنپ‌مارکت</b> برای جستجو لازم است. <b>دیجی‌کالا جت</b> اختیاری است — بدون ورود هم جستجو
+        می‌شود و ورود فقط آدرس‌های ذخیره‌شده‌ات را می‌آورد.
+      </p>
+      <div class="panel-actions">
+        <button id="closeAccounts" class="ghost" type="button">بستن</button>
+      </div>
     </section>
 
     <template id="accountTemplate">
