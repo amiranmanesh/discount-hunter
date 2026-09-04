@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint, test, build
+    name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -33,44 +33,24 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
         run: npm test
 
-      - name: Build every target
+      - name: Build
         run: npm run build
 
-      # Both are generated from committed source with no native dependencies, so
-      # a diff here means someone edited the output instead of the generator.
-      - name: Verify the manifest is in sync
-        run: |
-          npm run manifest
-          git diff --exit-code -- extension/manifest.json
-
+      # Generated from committed source with no native dependencies, so a diff
+      # here means someone edited the output instead of the generator.
       - name: Verify the icons are reproducible
         run: |
           npm run icons
-          git diff --exit-code -- public/icons extension/icons
+          git diff --exit-code -- public/icons
 
       - uses: actions/upload-artifact@v4
         with:
-          name: unpacked-extensions
+          name: web-build
           path: dist/
           retention-days: 14
-
-  addon-lint:
-    name: web-ext lint (Firefox)
-    runs-on: ubuntu-latest
-    # Advisory: AMO's linter is stricter than the store's own review bar and its
-    # warnings change between releases, so it must not gate a merge.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - run: npm ci
-      - run: npm run build:firefox
-      - run: npx --yes web-ext lint --source-dir dist/firefox --warnings-as-errors=false

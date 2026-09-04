@@ -36,9 +36,10 @@ export default tseslint.config(
     },
   },
   {
-    // The server and the build scripts run in Node.
+    // The server and the build scripts run in Node, but the Playwright ones also
+    // carry callbacks that are serialised into a page, so both global sets apply.
     files: ['server/**/*.mjs', 'scripts/**/*.mjs', 'vite.config.ts'],
-    languageOptions: { globals: globals.node },
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
     rules: { 'no-console': 'off' },
   },
   {

@@ -4,18 +4,13 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: Build the package without publishing it
-        type: boolean
-        default: true
 
 permissions:
   contents: write
 
 jobs:
   package:
-    name: Build and publish the package
+    name: Build and attach the bundle
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -40,12 +35,18 @@ jobs:
             exit 1
           fi
 
-      - name: Package
-        run: npm run package
+      # The bundle needs the server beside it: the two shopping APIs refuse
+      # cross-origin browser requests, so the app cannot be hosted as static
+      # files on someone else's domain.
+      - name: Package the deployable bundle
+        run: |
+          mkdir -p release
+          tar -czf "release/discount-hunter-${GITHUB_REF_NAME#v}.tar.gz" \
+            dist server package.json package-lock.json
 
       - uses: actions/upload-artifact@v4
         with:
-          name: release-package
+          name: release-bundle
           path: release/
 
       - name: Create the GitHub release
@@ -54,45 +55,3 @@ jobs:
         with:
           files: release/*
           generate_release_notes: true
-
-      # Skipped entirely until the matching secrets exist, so the workflow is
-      # safe to run in a fork or before the first store submission.
-      - name: Archive the sources for AMO review
-        run: |
-          git archive --format=zip --prefix=discount-hunter-source/ \
-            -o "release/discount-hunter-source.zip" HEAD
-
-      - name: Publish to the Chrome Web Store
-        if: >-
-          startsWith(github.ref, 'refs/tags/v') &&
-          inputs.dry_run != true &&
-          env.CHROME_CLIENT_ID != ''
-        env:
-          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
-          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
-          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
-          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
-        run: |
-          version="$(node -p "require('./package.json').version")"
-          npx --yes chrome-webstore-upload-cli@3 upload \
-            --source "release/discount-hunter-$version-chrome.zip" \
-            --extension-id "$CHROME_EXTENSION_ID" \
-            --client-id "$CHROME_CLIENT_ID" \
-            --client-secret "$CHROME_CLIENT_SECRET" \
-            --refresh-token "$CHROME_REFRESH_TOKEN"
-
-      - name: Publish to addons.mozilla.org
-        if: >-
-          startsWith(github.ref, 'refs/tags/v') &&
-          inputs.dry_run != true &&
-          env.AMO_JWT_ISSUER != ''
-        env:
-          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
-          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
-        run: |
-          npx --yes web-ext sign \
-            --source-dir dist/firefox \
-            --artifacts-dir release \
-            --channel listed \
-            --api-key "$AMO_JWT_ISSUER" \
-            --api-secret "$AMO_JWT_SECRET"

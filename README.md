@@ -1,180 +1,113 @@
 <div align="center">
-  <img src="public/icons/icon-128.png" width="88" height="88" alt="" />
+  <img src="public/icons/icon-192.png" width="84" height="84" alt="" />
   <h1>Discount Hunter · شکارچی تخفیف</h1>
-  <p><strong>Find the deepest Snapp Market orange discount (<code>تخفیف نارنجی</code>) for a product across every store that delivers to you.</strong></p>
+  <p><strong>Every Snapp Market and Digikala Jet discount near you, deepest first — as an installable web app.</strong></p>
+  <p><strong>English</strong> · <a href="README.fa.md">فارسی</a></p>
   <p>
-    <strong>English</strong> · <a href="README.fa.md">فارسی</a>
-  </p>
-  <p>
-    <a href="https://amiranmanesh.github.io/discount-hunter-extension">Website</a> ·
-    <a href="https://github.com/amiranmanesh/discount-hunter-extension/wiki">Wiki</a> ·
-    <a href="#install">Install</a> ·
+    <a href="#run-it">Run it</a> ·
     <a href="docs/ARCHITECTURE.md">Architecture</a> ·
-    <a href="docs/api-notes.md">Endpoints</a> ·
-    <a href="docs/PRIVACY.md">Privacy</a>
+    <a href="docs/API.md">Endpoints</a> ·
+    <a href="docs/PRIVACY.md">Privacy</a> ·
+    <a href="docs/DEVELOPMENT.md">Development</a>
   </p>
   <p>
-    <a href="https://github.com/amiranmanesh/discount-hunter-extension/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/amiranmanesh/discount-hunter-extension/actions/workflows/ci.yml/badge.svg" /></a>
-    <a href="https://github.com/amiranmanesh/discount-hunter-extension/actions/workflows/pages.yml"><img alt="Pages" src="https://github.com/amiranmanesh/discount-hunter-extension/actions/workflows/pages.yml/badge.svg" /></a>
-    <img alt="Manifest V3" src="https://img.shields.io/badge/manifest-v3-ff5f00" />
-    <img alt="No runtime dependencies" src="https://img.shields.io/badge/runtime%20deps-none-16a34a" />
+    <a href="https://github.com/amiranmanesh/discount-hunter/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/amiranmanesh/discount-hunter/actions/workflows/ci.yml/badge.svg" /></a>
+    <img alt="React 19" src="https://img.shields.io/badge/react-19-149eca" />
+    <img alt="PWA" src="https://img.shields.io/badge/PWA-installable-ff5f00" />
     <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue" /></a>
   </p>
 </div>
 
-<p align="center">
-  <img src="docs/popup.png" width="380"
-       alt="The extension popup listing ice-cream offers at 99% off, the Pro store with free delivery first." />
-</p>
-<p align="center"><sub>One search, 45 nearby stores, ordered by what you would actually pay.</sub></p>
-
 ---
 
-Snapp Market's `تخفیف نارنجی` campaign runs across dozens of stores at once, and
-the same product is discounted differently in each of them. Finding the best one
-by hand means opening store after store. This extension does it in one search,
-and orders the results so the store you should actually order from is first.
+Snapp Market's `تخفیف نارنجی` campaign and Digikala Jet's `شگفت‌انگیز` line-up run
+across dozens of stores at once, and the same product is discounted differently
+in each. This app reads both, from your own account, and sorts everything by how
+deep the discount actually is.
 
-It is an independent, open-source project. It is **not** affiliated with,
-endorsed by, or connected to Snapp or Digikala.
+Two ways to use it:
 
-## What it does
+- **تخفیف‌ها** — an endless feed of every campaign offer in range, deepest
+  discount first, mixed across both platforms. Nothing to type.
+- **جستجو** — one product, priced across every store that delivers to you, ranked
+  by discount, then Snapp Market **Pro**, then delivery fee.
 
-|                                     |                                                                                                                                                                                                                                            |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Reads the whole shelf**           | Lists every store that delivers to your address and is running the campaign — about 45 in central Tehran — then reads each one's **full** campaign catalogue, not the ten-item preview the listing endpoint returns.                       |
-| **Ranks the way you'd shop**        | Deepest discount (in 5% steps), then Snapp Market **Pro** stores, then cheapest delivery, then cheapest price. Two other orderings are one click away.                                                                                     |
-| **Only prices you can pay**         | The campaign feed mixes in `new_user` offers — every 90-99% discount is one — that an established account cannot buy. Those are dropped outright, and the leading results are re-priced against the store's own shelf before you see them. |
-| **Uses your prices**                | With a signed-in `snapp.market` tab open it borrows that session, so Pro delivery fees and the campaign line-up that applies to your account are the ones you see. Without one it mints an anonymous token, says so, and still works.      |
-| **Name or product code**            | Type a product name with suggestions from Snapp Market's own autocomplete, or paste a product id to compare one exact SKU across stores.                                                                                                   |
-| **Persian text that works**         | Arabic and Persian letter forms folded, digits normalised, and word-aware matching — searching `پفک مینو` does not return Domino ice cream.                                                                                                |
-| **Digikala Jet as a second source** | Searches every Jet shop in range, converting Rial to Toman so the platforms compare. Off by default in 1.0.0.                                                                                                                              |
-| **Opens the store**                 | Every result has a button that opens that store's page.                                                                                                                                                                                    |
-| **Nothing phones home**             | Requests go to Snapp Market and Digikala Jet and nowhere else. No analytics, no server of ours, no runtime dependencies. See [docs/PRIVACY.md](docs/PRIVACY.md).                                                                           |
+It is an independent, open-source project, not affiliated with Snapp or Digikala.
 
-## Install
+## Only prices you can actually pay
 
-> **فارسی:** راهنمای کامل فارسی در [README.fa.md](README.fa.md) و در
-> [صفحهٔ فارسی سایت](https://amiranmanesh.github.io/discount-hunter-extension/fa/) هست.
+Three rules, each of which exists because the app once got it wrong:
 
-There is no compile step — the extension is plain ES modules the browser loads
-directly.
+- **The first-order shelf is never read.** Every 90-99% discount in Snapp
+  Market's campaign feed is segmented to brand-new accounts. Those prices do not
+  exist for an established one, so that bucket is not fetched at all — only
+  counted, so the app can tell you what it ignored.
+- **Search results are confirmed against the store's own shelf** before they are
+  shown, with your token, through the request the store page itself makes. An
+  offer the store does not list is dropped rather than displayed.
+- **There is no guest mode.** A guest sees a different campaign at different
+  prices, so the search refuses to run without your Snapp Market session.
+
+## Run it
 
 ```bash
-git clone https://github.com/amiranmanesh/discount-hunter-extension.git
-cd discount-hunter-extension
+git clone https://github.com/amiranmanesh/discount-hunter.git
+cd discount-hunter
+npm ci
+npm run build
+npm start          # → http://localhost:4173
 ```
 
-```
-chrome://extensions  →  Developer mode  →  Load unpacked  →  the extension/ folder
-```
+Open it on your phone on the same network and add it to the home screen; it
+installs as a standalone app.
 
-### Which browsers
+For development, `npm run dev` gives you the same thing on :5173 with hot reload.
 
-| Browser                                         | Package                                                 |
-| ----------------------------------------------- | ------------------------------------------------------- |
-| Chrome, Edge, Brave, Opera, Vivaldi, Arc (111+) | `…-chrome.zip` — one package for every Chromium browser |
-| Firefox 121+, Firefox for Android               | `…-firefox.zip`                                         |
-| Safari 16.4+ on macOS                           | built with `npm run build:safari`; needs Xcode          |
+### Why it needs a server
 
-Only Chromium has been verified on a live session. What that means for the other
-two, and how to build each: [docs/BROWSER-SUPPORT.md](docs/BROWSER-SUPPORT.md).
+Neither platform allows a cross-origin browser request — Snapp Market sends
+`Access-Control-Allow-Origin` only for its own site, Digikala Jet sends none at
+all — so the page cannot call them directly, whatever the code does. The app is
+therefore served together with a small pass-through proxy on the same origin.
+The proxy keeps nothing, but it is on the path, so run your own:
+[docs/PRIVACY.md](docs/PRIVACY.md) is explicit about the trade.
 
-To build store-ready archives instead: `npm install && npm run package`, then
-load or upload `release/discount-hunter-<version>-<target>.zip`.
+## Sign in
 
-### Sign in
+**حساب‌ها** → phone number → SMS code, one platform at a time.
 
-Open the popup's **حساب‌ها** panel and sign in with your phone number and the SMS
-code, one platform at a time. **Snapp Market is required** — a guest sees a
-different campaign at different prices, so the extension refuses to search
-without it. **Digikala Jet is optional**: its search needs no token, and signing
-in only adds that account's saved addresses.
+**Snapp Market is required.** **Digikala Jet is optional**: its search takes no
+token, and signing in only adds that account's saved addresses. The app holds its
+own refresh token, so a session renews itself rather than expiring in an hour.
 
-The extension holds its own refresh token, so a session renews itself instead of
-expiring after an hour the way a token borrowed from the website does.
+Codes are rate-limited on purpose: two minutes between codes, five per fifteen
+minutes, five attempts per code, and a server `Retry-After` is honoured.
 
-### Set your delivery point
+## Set your delivery point
 
-Every price and delivery fee depends on where you are.
-
-- **Easy:** open `snapp.market` in a tab and sign in. Your saved addresses appear
-  in the popup automatically; click the chip at the top to choose between them.
-- **By hand:** click the chip and enter latitude and longitude. Right-clicking a
-  point in Google Maps puts them on your clipboard.
-
-## Using it
-
-Type a product name — `پفک مینو`, `بستنی میهن` — and press **جستجو**. Any input
-of four or more digits is treated as a product code and matched exactly.
-
-| Control                       | Effect                                                                     |
-| ----------------------------- | -------------------------------------------------------------------------- |
-| **ترتیب**                     | Sort mode — see [docs/RANKING.md](docs/RANKING.md)                         |
-| **فقط تخفیف کمپینی**          | On: campaign discounts only. Off (the default): the ordinary catalogue too |
-| **فقط فروشگاه باز**           | Hide closed stores                                                         |
-| **حداقل تخفیف**               | Drop anything under 20/30/50/70%                                           |
-| **اسنپ‌مارکت / دیجی‌کالا جت** | Which platforms to query                                                   |
-
-Each card shows the total with delivery and the store's minimum basket
-(`حداقل سبد`) — the ranking does not account for the minimum, so check it before
-celebrating a 500-Toman ice cream.
-
-A worked example, searching `بستنی میهن`:
-
-```
-۹۹٪  ۵۰۰ تومان   دیلی مارکت سمنگان     ⚡ پرو · ارسال رایگان   → جمع ۵۰۰
-۹۹٪  ۵۰۰ تومان   فروشگاه راکت سمنگان   ⚡ پرو · ارسال ۱٬۸۰۰    → جمع ۲٬۳۰۰
-۹۹٪  ۵۰۰ تومان   سوپر.مارکت ونو        ⚡ پرو · ارسال ۲٬۰۰۰    → جمع ۲٬۵۰۰
-```
-
-Same discount bucket, all Pro, so the delivery fee decides.
+**تنظیمات** → **استفاده از موقعیت فعلی** for GPS, or type coordinates. If you are
+signed in to Jet, its saved addresses are listed there too.
 
 ## How it is built
 
 ```
-extension/     the unpacked extension — loadable as-is, no build step
-  src/api/     one client per platform; all network I/O lives here
-  src/core/    hunt orchestration, ranking, de-duplication
-  src/util/    Persian text matching, storage, bounded concurrency
-  content/     session and delivery-point capture, one file per site
-  popup/       the entire interface, RTL, follows the browser theme
-scripts/       build, manifest, icons, and the driven-browser tools
-tests/         Vitest over core/, util/ and the API clients
-docs/          architecture, development, ranking, privacy, endpoint reference
-site/          the GitHub Pages site
-wiki/          the wiki pages, mirrored on merge
+src/api/        one client per platform; everything that touches the network
+src/core/       the feed, the search, ranking, Persian matching — all pure
+src/auth/       sessions, OTP rate limiting, phone normalisation
+src/routes/     one file per tab
+server/         the production server and the shared proxy table
+docs/           architecture, endpoints, privacy, development
 ```
 
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains the design;
-[docs/api-notes.md](docs/api-notes.md) documents every endpoint and payload shape,
-captured from live traffic.
-
-## Development
-
-```bash
-make install     # npm install + the Playwright browser
-make verify      # what CI runs: format, lint, tests, build
-make browser     # Chromium with the extension loaded and a signed-in session
-make recon       # a browser that logs every API call to probe-out/
-make help        # every target
-```
-
-Each `make` target wraps the matching npm script, so both work.
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) covers the driven-browser scripts,
-capturing traffic and adding a platform.
-
-Two things worth knowing before you start: Chrome caches extension resources per
-profile (reload the extension card after editing, and note that every
-driven-browser script deletes its profile for this reason), and the end-to-end
-scripts hit the live API so they are deliberately not in CI.
+React 19, Vite 8, TypeScript, TanStack Query, zustand, `vite-plugin-pwa`. No UI
+framework: about 700 lines of CSS with design tokens, RTL, light and dark from
+the system, and a bottom bar on phones that becomes a top bar on laptops.
 
 ## Contributing
 
-Bug reports about endpoints that changed shape are the most useful thing you can
-send — these are undocumented APIs and they move without notice. See
-[CONTRIBUTING.md](CONTRIBUTING.md), and **strip the `authorization` header from
-anything you paste**: that bearer token is your account.
+The most useful reports are endpoints that changed shape — these are undocumented
+APIs and they move without notice. See [CONTRIBUTING.md](CONTRIBUTING.md), and
+**never paste an `Authorization` header**: that token is your account.
 
 ## Licence
 

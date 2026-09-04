@@ -6,41 +6,35 @@ Please report security issues privately by opening a GitHub security advisory on
 this repository rather than a public issue. Expect an acknowledgement within a
 week.
 
-## What the extension can reach
+## What the app holds
 
-Two permissions and four host patterns:
+Session tokens for Snapp Market and Digikala Jet, in `localStorage`, obtained by
+signing in with a phone number and an SMS code. They are sent to the platform
+they came from and nowhere else. There is no account with this project and no
+server-side state.
 
-- `storage` — the delivery point, the filters and the cached last result.
-- `tabs` — opening the store you picked, and nothing else.
-- `https://svc.snapp.market/*`, `https://api.digikalajet.ir/*` and the two site
-  origins — the APIs it queries, plus the two content scripts that read the
-  session and the delivery point out of pages you already have open.
+## The proxy is the interesting boundary
 
-Reading the Snapp Market session needs no `scripting` permission: the content
-script is declared in the manifest and hands the token back over
-`runtime.sendMessage`.
+Both platforms refuse cross-origin browser requests, so calls pass through this
+app's own server ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the
+measurements). `server/index.mjs` forwards the request and streams the answer
+back: it stores nothing, logs no bodies, and does not read the `Authorization`
+header.
 
-There is no analytics, no telemetry and no server of ours anywhere in the path.
+It is still on the path. Whoever runs the server could see tokens travelling
+through it, which is a real difference from the browser extension this replaced.
+**Run your own deployment**, and treat any hosted instance as something you are
+trusting with your session.
 
-## The credential boundary
+## Rate limiting
 
-This is the part worth reviewing.
+OTP endpoints are the easiest way to get a phone number throttled, so the client
+enforces its own budget before a request leaves: two minutes between codes, five
+codes per fifteen minutes, five verification attempts per code, and a server
+`Retry-After` is honoured and never shortened.
 
-- The extension reads the Snapp Market **bearer token** from
-  `localStorage['persist:siteState']` in a `snapp.market` tab you are already
-  signed in to, and stores it in `chrome.storage.local`. It is sent to
-  `svc.snapp.market` and to nowhere else.
-- Without a signed-in tab it mints its own **anonymous token** through the same
-  public `client_credentials` grant the website uses. That token is tied to a
-  random UDID the extension generates, not to any account.
-- Tokens are short-lived (about an hour for a session token, about three days
-  for an anonymous one) and are refreshed, never logged.
-- **Captured traffic contains tokens.** `probe-out/` and `.browser-profile/` are
-  git-ignored for that reason. Strip the `authorization` header before attaching
-  anything to an issue.
+## Out of scope
 
-## What is out of scope
-
-The extension compares public catalogue prices with your own account and your own
-address. It does not place orders, does not touch your cart, and cannot recover
-anything an attacker with access to your browser profile could not already read.
+The app compares public catalogue prices using your own account and address. It
+does not place orders, does not touch your cart, and cannot reach anything an
+attacker with your browser profile could not already read.

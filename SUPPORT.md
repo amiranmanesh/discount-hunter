@@ -1,23 +1,25 @@
 # Getting help
 
-**Documentation lives in the [wiki](https://github.com/amiranmanesh/discount-hunter-extension/wiki):**
+**Start here:** [README](README.md) · [فارسی](README.fa.md) ·
+[Development](docs/DEVELOPMENT.md) · [Architecture](docs/ARCHITECTURE.md)
 
-- [Installation](https://github.com/amiranmanesh/discount-hunter-extension/wiki/Installation)
-- [How the ranking works](https://github.com/amiranmanesh/discount-hunter-extension/wiki/Ranking) — why the top result is the top result
-- [Troubleshooting](https://github.com/amiranmanesh/discount-hunter-extension/wiki/Troubleshooting) — start here when a search returns nothing
-- [FAQ](https://github.com/amiranmanesh/discount-hunter-extension/wiki/FAQ)
+**The feed or the search is empty.** Check the delivery point in **تنظیمات**, and
+that you are signed in to Snapp Market in **حساب‌ها** — its results need your
+session, and the search refuses to run without one. Digikala Jet appears either
+way.
 
-**A search found nothing?** Turn off **فقط تخفیف کمپینی** first: the product may
-simply not be in today's orange-discount line-up. The
-[troubleshooting page](https://github.com/amiranmanesh/discount-hunter-extension/wiki/Troubleshooting)
-walks through the rest.
+**A discount looks too good.** Every 90-99% discount in Snapp Market's campaign
+belongs to the first-order shelf, which this app never reads. If you see one,
+that is a bug worth reporting.
 
-**Prices look wrong?** Sign in to `snapp.market` in another tab and search again.
-Pro delivery fees and personalised campaign prices only appear for your own
-account.
+**It asks me to sign in again.** The app holds its own refresh token, so this
+should be rare. Sign out from **حساب‌ها** and back in; that clears a session whose
+refresh the platform has revoked.
 
-**Still stuck?** [Open an issue](https://github.com/amiranmanesh/discount-hunter-extension/issues/new/choose).
-The forms ask for the status line at the bottom of the popup, which is usually
-enough to tell a matching problem from an API change.
+**Codes stop arriving.** They are rate-limited on purpose — two minutes between
+codes, five per fifteen minutes. The message tells you how long is left.
 
-**Found a vulnerability?** Please report it privately — see [SECURITY.md](SECURITY.md).
+**Something else?** [Open an issue](https://github.com/amiranmanesh/discount-hunter/issues/new/choose).
+Never paste an `Authorization` header.
+
+**Found a vulnerability?** Report it privately — see [SECURITY.md](SECURITY.md).
