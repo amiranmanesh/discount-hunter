@@ -58,12 +58,19 @@ cd discount-hunter-extension
 chrome://extensions  ←  Developer mode روشن  ←  Load unpacked  ←  پوشهٔ extension/
 ```
 
-روی کروم، اج، بریو، اپرا، ویوالدی و آرک (کرومیوم ۱۱۱ به بالا) کار می‌کند. فایرفاکس
-و سافاری هنوز پشتیبانی نمی‌شوند؛ ساختار manifest طوری نوشته شده که اضافه کردن
-تارگت دوم کار کمی است، ولی روی آن موتورها چیزی تست نشده.
+### کدام مرورگرها
 
-برای ساختن بستهٔ آمادهٔ فروشگاه: `npm install && npm run package` و بعد
-`release/discount-hunter-<version>-chrome.zip`.
+| مرورگر                                    | بسته                                          |
+| ----------------------------------------- | --------------------------------------------- |
+| کروم، اج، بریو، اپرا، ویوالدی، آرک (۱۱۱+) | `…-chrome.zip` — یک بسته برای همهٔ کرومیوم‌ها |
+| فایرفاکس ۱۲۱+ و فایرفاکس اندروید          | `…-firefox.zip`                               |
+| سافاری ۱۶.۴+ روی مک                       | با `npm run build:safari`؛ نیازمند Xcode      |
+
+فقط کرومیوم روی نشست واقعی تست شده. جزئیات و نحوهٔ ساخت هرکدام:
+[docs/BROWSER-SUPPORT.md](docs/BROWSER-SUPPORT.md).
+
+برای ساختن بسته‌های آمادهٔ فروشگاه: `npm install && npm run package` و بعد
+`release/discount-hunter-<version>-<target>.zip`.
 
 ### موقعیت تحویل را تنظیم کن
 

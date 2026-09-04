@@ -36,7 +36,7 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Build
+      - name: Build every target
         run: npm run build
 
       # Both are generated from committed source with no native dependencies, so
@@ -53,6 +53,24 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: unpacked-extension
-          path: dist/chrome
+          name: unpacked-extensions
+          path: dist/
           retention-days: 14
+
+  addon-lint:
+    name: web-ext lint (Firefox)
+    runs-on: ubuntu-latest
+    # Advisory: AMO's linter is stricter than the store's own review bar and its
+    # warnings change between releases, so it must not gate a merge.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build:firefox
+      - run: npx --yes web-ext lint --source-dir dist/firefox --warnings-as-errors=false

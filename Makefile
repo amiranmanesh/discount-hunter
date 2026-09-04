@@ -5,7 +5,7 @@
 NPM ?= npm
 
 .DEFAULT_GOAL := help
-.PHONY: help install icons manifest build dev package clean lint format test verify browser recon e2e shot verify-offer release-check
+.PHONY: help install icons manifest build build-safari dev package clean lint format test verify browser recon e2e shot audit verify-offer release-check
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -21,8 +21,11 @@ icons: ## Regenerate the icon set (pure Node, byte-reproducible)
 manifest: ## Regenerate extension/manifest.json from scripts/manifest.mjs
 	$(NPM) run manifest
 
-build: ## Build dist/chrome
+build: ## Build dist/chrome and dist/firefox
 	$(NPM) run build
+
+build-safari: build ## Generate the Safari Xcode project from dist/chrome (macOS)
+	$(NPM) run build:safari
 
 dev: ## Build and rebuild on change
 	$(NPM) run dev
@@ -56,6 +59,9 @@ e2e: ## Drive the popup end to end against the live API
 
 shot: ## Refresh docs/popup.png
 	$(NPM) run shot
+
+audit: ## Run a query through the popup and check every price against the stores
+	$(NPM) run audit
 
 verify-offer: ## Compare one query's winning offer against the store's own shelf
 	$(NPM) run verify-offer

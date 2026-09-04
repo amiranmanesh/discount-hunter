@@ -24,6 +24,7 @@ describe('manifest contents', () => {
   it('is Manifest V3 with a module service worker', () => {
     expect(manifest.manifest_version).toBe(3);
     expect(manifest.background).toEqual({ service_worker: 'background.js', type: 'module' });
+    expect(manifest.minimum_chrome_version).toBe('111');
   });
 
   it('asks for no permission beyond the two it documents', () => {
@@ -57,7 +58,44 @@ describe('manifest contents', () => {
   });
 
   it('rejects an unknown build target', () => {
-    expect(() => buildManifest('firefox', '1.0.0')).toThrow('Unknown target');
-    expect(TARGETS).toEqual(['chrome']);
+    expect(() => buildManifest('safari', '1.0.0')).toThrow('Unknown target');
+    expect(TARGETS).toEqual(['chrome', 'firefox']);
+  });
+});
+
+describe('the Firefox target', () => {
+  const firefox = buildManifest('firefox', pkg.version);
+
+  it('runs the background as an event page, not a service worker', () => {
+    // Firefox's support for module background scripts is too recent to depend
+    // on, so the Firefox build ships a bundled classic script.
+    expect(firefox.background).toEqual({ scripts: ['background.js'] });
+    expect(firefox.background.type).toBeUndefined();
+  });
+
+  it('carries a stable add-on id for AMO', () => {
+    expect(firefox.browser_specific_settings.gecko.id).toMatch(/^\{[0-9a-f-]{36}\}$/);
+    expect(firefox.browser_specific_settings.gecko.strict_min_version).toBe('121.0');
+  });
+
+  it('declares Android support', () => {
+    expect(firefox.browser_specific_settings.gecko_android.strict_min_version).toBe('121.0');
+  });
+
+  it('declares what it collects, as AMO requires', () => {
+    expect(firefox.browser_specific_settings.gecko.data_collection_permissions.required).toEqual([
+      'locationInfo',
+      'authenticationInfo',
+    ]);
+  });
+
+  it('shares everything else with the Chrome build', () => {
+    const strip = ({
+      background: _b,
+      browser_specific_settings: _s,
+      minimum_chrome_version: _m,
+      ...rest
+    }) => rest;
+    expect(strip(firefox)).toEqual(strip(manifest));
   });
 });

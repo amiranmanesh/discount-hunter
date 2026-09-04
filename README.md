@@ -69,12 +69,19 @@ cd discount-hunter-extension
 chrome://extensions  →  Developer mode  →  Load unpacked  →  the extension/ folder
 ```
 
-Chrome, Edge, Brave, Opera, Vivaldi and Arc (Chromium 111+). Firefox and Safari
-are not supported yet — the manifest builder is written so a second target is a
-small change, but nothing has been verified on those engines.
+### Which browsers
 
-To build a store-ready archive instead: `npm install && npm run package`, then
-load or upload `release/discount-hunter-<version>-chrome.zip`.
+| Browser                                         | Package                                                 |
+| ----------------------------------------------- | ------------------------------------------------------- |
+| Chrome, Edge, Brave, Opera, Vivaldi, Arc (111+) | `…-chrome.zip` — one package for every Chromium browser |
+| Firefox 121+, Firefox for Android               | `…-firefox.zip`                                         |
+| Safari 16.4+ on macOS                           | built with `npm run build:safari`; needs Xcode          |
+
+Only Chromium has been verified on a live session. What that means for the other
+two, and how to build each: [docs/BROWSER-SUPPORT.md](docs/BROWSER-SUPPORT.md).
+
+To build store-ready archives instead: `npm install && npm run package`, then
+load or upload `release/discount-hunter-<version>-<target>.zip`.
 
 ### Set your delivery point
 

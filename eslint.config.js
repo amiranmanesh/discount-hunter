@@ -54,5 +54,11 @@ export default [
       sourceType: 'module',
       globals: { ...globals.node, ...globals.webextensions },
     },
+    rules: {
+      'no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+    },
   },
 ];

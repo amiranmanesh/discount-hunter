@@ -14,10 +14,6 @@
     "https://api.digikalajet.ir/*",
     "https://www.digikalajet.com/*"
   ],
-  "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
   "action": {
     "default_title": "شکارچی تخفیف",
     "default_popup": "popup/popup.html",
@@ -53,5 +49,10 @@
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "minimum_chrome_version": "111"
 }

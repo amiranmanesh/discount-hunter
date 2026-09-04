@@ -13,7 +13,10 @@ import path from 'node:path';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const resolve = (...parts) => path.join(root, ...parts);
 
-export const TARGETS = ['chrome'];
+export const TARGETS = ['chrome', 'firefox'];
+
+/** Add-on id on addons.mozilla.org. Must stay stable across releases. */
+export const GECKO_ID = '{7a1c3d6e-4f28-4d2b-9a5c-0e6b1c8f2d31}';
 
 const ICON_SIZES = [16, 32, 48, 128];
 const icons = Object.fromEntries(ICON_SIZES.map((size) => [size, `icons/icon-${size}.png`]));
@@ -21,7 +24,7 @@ const icons = Object.fromEntries(ICON_SIZES.map((size) => [size, `icons/icon-${s
 export function buildManifest(target, version) {
   if (!TARGETS.includes(target)) throw new Error(`Unknown target "${target}"`);
 
-  return {
+  const manifest = {
     manifest_version: 3,
     name: 'شکارچی تخفیف — Discount Hunter',
     version,
@@ -41,7 +44,6 @@ export function buildManifest(target, version) {
       'https://www.digikalajet.com/*',
     ],
 
-    background: { service_worker: 'background.js', type: 'module' },
     action: {
       default_title: 'شکارچی تخفیف',
       default_popup: 'popup/popup.html',
@@ -61,6 +63,32 @@ export function buildManifest(target, version) {
       },
     ],
   };
+
+  if (target === 'chrome') {
+    // The extension is plain ES modules that Chrome loads directly.
+    manifest.background = { service_worker: 'background.js', type: 'module' };
+    manifest.minimum_chrome_version = '111';
+  } else {
+    // Firefox runs the background as an event page, and its support for module
+    // background scripts is too recent to rely on — so the Firefox build ships a
+    // bundled classic script instead (see scripts/build.mjs).
+    manifest.background = { scripts: ['background.js'] };
+    manifest.browser_specific_settings = {
+      gecko: {
+        id: GECKO_ID,
+        strict_min_version: '121.0',
+        // AMO requires an explicit consent declaration. The extension queries
+        // Snapp Market and Digikala Jet with the user's own session and stores
+        // nothing off-device, so the honest answer is the two categories below.
+        data_collection_permissions: { required: ['locationInfo', 'authenticationInfo'] },
+      },
+      // Nothing here is desktop-specific: the UI is a popup and two content
+      // scripts.
+      gecko_android: { strict_min_version: '121.0' },
+    };
+  }
+
+  return manifest;
 }
 
 export async function readVersion() {
