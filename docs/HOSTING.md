@@ -33,7 +33,41 @@ The app and the proxy are one process on one origin. Nothing to configure, no
 CORS anywhere, and the token never leaves your machine except to the platform it
 came from. [`docs/DEPLOY.md`](DEPLOY.md) covers it.
 
-## 2. GitHub Pages + a Worker on the same domain (no CORS)
+## 2. GitHub Pages + the same Docker image as a proxy
+
+No Cloudflare needed. The image you already publish can run as nothing but a
+proxy: it serves `/api/*` wherever you put it, and `ALLOWED_ORIGINS` says which
+app origin may call it.
+
+On any host you control — a small VPS, an Iranian PaaS, anything that runs a
+container:
+
+```bash
+docker run -d -p 4173:4173 \
+  -e ALLOWED_ORIGINS="https://amiranmanesh.github.io" \
+  ghcr.io/amiranmanesh/discount-hunter:latest
+```
+
+Put it behind TLS on a hostname of yours — say `api.yourdomain.ir` — then tell
+the Pages build where it is:
+
+```bash
+gh variable set PAGES_API_BASE --body "https://api.yourdomain.ir/api"
+```
+
+Push, or run the Pages workflow by hand, and Pages publishes the app instead of
+the project page. **Until `PAGES_API_BASE` is set, the workflow deliberately
+keeps publishing the project page** — a static build with nowhere to call would
+load and then fail on every request.
+
+`ALLOWED_ORIGINS` takes a comma-separated list and is never `*`. This proxy
+forwards whatever `Authorization` header it is handed, so any origin it echoes is
+an origin that can spend the session.
+
+The same container is still serving the app at its own address, which is
+harmless; set `PORT` and firewall it to taste if you would rather it did not.
+
+## 3. GitHub Pages + a Worker on the same domain (no CORS)
 
 The nicest of the static options: the browser never makes a cross-origin request
 at all, because `/api/*` is the same host as the app.
@@ -60,7 +94,7 @@ This needs the domain's DNS to sit behind a provider that can route one path to 
 Worker and the rest to Pages. Cloudflare does it directly. Another CDN can too,
 if it supports per-path origins.
 
-## 3. GitHub Pages + a Worker on its own origin (CORS, but yours)
+## 4. GitHub Pages + a Worker on its own origin (CORS, but yours)
 
 When the domain cannot split paths, the Worker lives at its own address and is
 told which origin may talk to it.
@@ -92,9 +126,10 @@ reason there is no hosted instance to point you at.
 
 The three APIs are Iranian and generally expect Iranian traffic. A proxy on a
 global edge network may be slower, or refused, depending on where its nodes sit
-and where you are. If the deployed Worker answers `502` while the same request
-works from your own machine, that is the thing to suspect first — a small server
-in-country (option 1) sidesteps it.
+and where you are. If a deployed proxy answers `502` while the same request works
+from your own machine, that is the thing to suspect first — a host in-country
+(options 1 and 2) sidesteps it entirely, which is the main reason option 2 exists
+alongside the Worker.
 
 ## Building for a static host yourself
 

@@ -19,11 +19,16 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PROXY_TARGETS } from './targets.mjs';
+import { corsHeaders, parseAllowedOrigins, resolveOrigin } from './cors.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DIST = path.join(ROOT, 'dist');
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '0.0.0.0';
+
+// Empty unless this process is the proxy for an app served from somewhere else,
+// such as a build on GitHub Pages. Same-origin hosting needs no entry here.
+const ALLOWED_ORIGINS = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -48,6 +53,7 @@ const FORWARDED_HEADER_PREFIX = 'x-';
 
 async function proxy(req, res, prefix, target) {
   const upstreamUrl = `${target.origin}${req.url.slice(prefix.length)}`;
+  const allowOrigin = resolveOrigin(req.headers.origin, ALLOWED_ORIGINS);
 
   const headers = {
     'user-agent': 'discount-hunter',
@@ -78,10 +84,14 @@ async function proxy(req, res, prefix, target) {
       ...(upstream.headers.get('retry-after')
         ? { 'retry-after': upstream.headers.get('retry-after') }
         : {}),
+      ...corsHeaders(allowOrigin),
     });
     res.end(payload);
   } catch (error) {
-    res.writeHead(502, { 'content-type': 'application/json; charset=utf-8' });
+    res.writeHead(502, {
+      'content-type': 'application/json; charset=utf-8',
+      ...corsHeaders(allowOrigin),
+    });
     res.end(JSON.stringify({ message: `دسترسی به سرویس ممکن نشد: ${error.message}` }));
   }
 }
@@ -101,11 +111,18 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
+      ...corsHeaders(resolveOrigin(req.headers.origin, ALLOWED_ORIGINS)),
     });
     return res.end(JSON.stringify({ status: 'ok', build: existsSync(DIST) }));
   }
-
   const prefix = Object.keys(PROXY_TARGETS).find((candidate) => req.url.startsWith(candidate));
+
+  // A cross-origin app asks permission before every non-simple request.
+  if (req.method === 'OPTIONS' && prefix) {
+    res.writeHead(204, corsHeaders(resolveOrigin(req.headers.origin, ALLOWED_ORIGINS)));
+    return res.end();
+  }
+
   if (prefix) return proxy(req, res, prefix, PROXY_TARGETS[prefix]);
 
   if (!existsSync(DIST)) {

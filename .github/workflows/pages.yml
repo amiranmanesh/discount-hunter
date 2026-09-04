@@ -49,7 +49,21 @@ jobs:
       - uses: actions/configure-pages@v6
         id: pages
 
-      - name: Build
+      # Publishing the app only makes sense once it has a proxy to talk to: a
+      # static build with no `PAGES_API_BASE` would load and then fail on every
+      # request. Until the variable is set, Pages keeps serving the project page.
+      - name: Decide what to publish
+        id: what
+        run: |
+          if [ -n "${{ vars.PAGES_API_BASE }}" ]; then
+            echo "target=app" >> "$GITHUB_OUTPUT"
+          else
+            echo "target=site" >> "$GITHUB_OUTPUT"
+            echo "::notice::PAGES_API_BASE is not set, so the project page is published rather than the app. See docs/HOSTING.md."
+          fi
+
+      - name: Build the app
+        if: steps.what.outputs.target == 'app'
         env:
           # A project site is served from `/<repo>/`; a custom domain from the
           # root. `configure-pages` works out which, and the base path has to
@@ -63,6 +77,13 @@ jobs:
           cp -r site/* dist/about/
           # Pages serves 404.html for unknown paths; the app is a single page.
           cp dist/index.html dist/404.html
+
+      - name: Or just the project page
+        if: steps.what.outputs.target == 'site'
+        run: |
+          rm -rf dist
+          cp -r site dist
+          cp public/icons/icon-128.png public/icons/icon-512.png dist/assets/ 2>/dev/null || true
 
       - uses: actions/upload-pages-artifact@v5
         with:

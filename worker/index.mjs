@@ -21,6 +21,7 @@
  * Worker and not somebody else's.
  */
 import { PROXY_TARGETS } from './targets.mjs';
+import { corsHeaders, parseAllowedOrigins, resolveOrigin } from './cors.mjs';
 
 const FORWARDED_REQUEST_HEADERS = ['authorization', 'content-type', 'accept', 'accept-language'];
 
@@ -30,26 +31,7 @@ const isForwardable = (name) =>
   (name.startsWith('x-') && !name.startsWith('x-forwarded-'));
 
 function allowedOrigin(request, env) {
-  const origin = request.headers.get('origin');
-  if (!origin) return null;
-  const allowed = (env.ALLOWED_ORIGINS ?? '')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
-  // No list means same-origin routing, where CORS never comes up.
-  if (!allowed.length) return null;
-  return allowed.includes(origin) ? origin : null;
-}
-
-function corsHeaders(origin) {
-  if (!origin) return {};
-  return {
-    'access-control-allow-origin': origin,
-    'access-control-allow-methods': 'GET,POST,OPTIONS',
-    'access-control-allow-headers': '*',
-    'access-control-max-age': '86400',
-    vary: 'Origin',
-  };
+  return resolveOrigin(request.headers.get('origin'), parseAllowedOrigins(env.ALLOWED_ORIGINS));
 }
 
 export default {

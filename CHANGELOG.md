@@ -8,6 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **The server can be the proxy for an app hosted elsewhere.** `ALLOWED_ORIGINS`
+  makes the same Docker image answer `/api/*` for a build on GitHub Pages, so a
+  static deployment needs no Cloudflare and no third party — just the image you
+  already publish, on a host you already have.
 - **The app can be deployed to a static host.** `VITE_API_BASE` points it at a
   proxy on another origin and `VITE_BASE` at the sub-path it is served from, so
   GitHub Pages can host the built app rather than only a landing page.
