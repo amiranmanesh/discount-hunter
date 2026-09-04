@@ -84,7 +84,13 @@ const session = await page.evaluate(() => {
     const anonymous = performance
       .getEntriesByType('resource')
       .some((entry) => entry.name.includes('svc.snapp.market'));
-    if (anonymous) return { token: null, tokens: found.map(({ jwt: _jwt, ...rest }) => rest), address: null, needsAnonymous: true };
+    if (anonymous)
+      return {
+        token: null,
+        tokens: found.map(({ jwt: _jwt, ...rest }) => rest),
+        address: null,
+        needsAnonymous: true,
+      };
   }
 
   let address = null;
@@ -137,7 +143,9 @@ console.log(`mode: ${mode}`);
 const { lat, lng } = session.address
   ? { lat: session.address.latitude, lng: session.address.longitude }
   : { lat: Number(process.env.LAT || 35.722358), lng: Number(process.env.LNG || 51.47813) };
-console.log(`address: ${session.address?.label || '(from env)'} (${lat.toFixed(6)}, ${lng.toFixed(6)})\n`);
+console.log(
+  `address: ${session.address?.label || '(from env)'} (${lat.toFixed(6)}, ${lng.toFixed(6)})\n`,
+);
 
 const HEADERS = {
   accept: 'application/json, text/plain, */*',
@@ -169,7 +177,8 @@ for (const vendor of vendors) {
     `https://svc.snapp.market/market-party/${vendor.vendor_code}?variable=${vendor.vendor_code}&page_size=100&${common}`,
   );
   const list = json?.data?.products?.List || [];
-  const personalized = json?.data?.personalizedProducts?.List || json?.data?.personalizedProducts || [];
+  const personalized =
+    json?.data?.personalizedProducts?.List || json?.data?.personalizedProducts || [];
   for (const [source, products] of [
     ['products', list],
     ['personalized', personalized],
@@ -234,7 +243,10 @@ if (top) {
   await page.keyboard.press('Enter');
   await page.waitForTimeout(9000);
   fs.mkdirSync(path.join(ROOT, 'probe-out'), { recursive: true });
-  await page.screenshot({ path: path.join(ROOT, 'probe-out', 'verify-vendor.png'), fullPage: false });
+  await page.screenshot({
+    path: path.join(ROOT, 'probe-out', 'verify-vendor.png'),
+    fullPage: false,
+  });
 
   console.log('\nin-vendor requests:');
   for (const call of calls) {

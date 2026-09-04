@@ -39,7 +39,13 @@ export default [
       sourceType: 'module',
       globals: { ...globals.node, ...globals.browser, ...globals.webextensions },
     },
-    rules: { 'no-console': 'off' },
+    rules: {
+      'no-console': 'off',
+      'no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+    },
   },
   {
     files: ['tests/**/*.js'],
