@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **The first-order shelf is never read.** `personalizedProducts` — the
+  "ویژه خرید اول" list — is no longer fetched into the offer pool at all, only
+  counted so the popup can say what it left out. Filtering it after the fact was
+  not enough; the whole bucket is off limits.
+- **Every Snapp result is confirmed against the store's own shelf before it is
+  shown.** An offer the shelf does not list, or that was never checked, is
+  dropped instead of displayed on the campaign feed's word. The status line now
+  breaks results down per platform, and the notes say how many were dropped and
+  why.
 - **New-user offers are gone, not optional.** The `تخفیف کاربر جدید` filter has
   been removed along with the setting behind it: an established account cannot
   buy at those prices, so there is no case where showing them is right. They are

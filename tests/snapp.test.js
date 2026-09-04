@@ -123,9 +123,10 @@ describe('collectOrangeOffers', () => {
     expect(vendorCount).toBe(3);
   });
 
-  it('marks a segmented offer as targeted so it can be filtered out', async () => {
-    // Every 90-99% discount in the live campaign is `segment: new_user`, and
-    // those prices do not exist for an established account.
+  it('never reads the first-order list, only counts it', async () => {
+    // `personalizedProducts` is the "ویژه خرید اول" shelf. Every 90-99% discount
+    // in the live campaign lives there and none of it is purchasable by an
+    // established account, so it is not read at all.
     mockSnapp({
       '/market-party/35.722358': { data: { total_count: 1, vendors: [vendorRow()] } },
       '/market-party/09eyeq': {
@@ -147,17 +148,15 @@ describe('collectOrangeOffers', () => {
       },
     });
 
-    const { offers } = await collectOrangeOffers({ ...LOCATION, maxVendors: 1 });
-    const cola = offers.find((offer) => offer.title.includes('زیرو'));
-    const iceCream = offers.find((offer) => offer.title.includes('بستنی'));
-
-    expect(cola).toMatchObject({
-      segment: 'new_user',
-      targeted: true,
-      personalized: true,
-      campaignLabel: 'تخفیف کاربر جدید',
+    const { offers, firstOrderSkipped } = await collectOrangeOffers({
+      ...LOCATION,
+      maxVendors: 1,
     });
-    expect(iceCream).toMatchObject({ segment: 'general', targeted: false, personalized: false });
+
+    expect(offers).toHaveLength(1);
+    expect(offers[0]).toMatchObject({ segment: 'general', targeted: false, personalized: false });
+    expect(offers.some((offer) => offer.title.includes('زیرو'))).toBe(false);
+    expect(firstOrderSkipped).toBe(1);
   });
 
   it('treats a product with no segment as generally available', async () => {
@@ -173,9 +172,7 @@ describe('collectOrangeOffers', () => {
   it('drops a product listed twice by the same vendor', async () => {
     mockSnapp({
       '/market-party/35.722358': { data: { total_count: 1, vendors: [vendorRow()] } },
-      '/market-party/09eyeq': {
-        data: { products: { List: [product(), product()] }, personalizedProducts: [product()] },
-      },
+      '/market-party/09eyeq': { data: { products: { List: [product(), product()] } } },
     });
 
     const { offers } = await collectOrangeOffers({ ...LOCATION, maxVendors: 1 });

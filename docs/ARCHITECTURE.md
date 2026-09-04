@@ -70,6 +70,13 @@ load, so the popup can show which vendor it is on.
 3. Each product becomes an offer: `finalPrice = price - discount`, both in Toman,
    plus the vendor fields and a deep link to the store.
 
+### The first-order shelf is not read
+
+`personalizedProducts` is the "ویژه خرید اول" list. It is not filtered, sorted or
+inspected for usable rows — it is never pulled into the offer pool, only counted
+so the popup can report what it ignored. Everything the extension shows comes
+from `products.List`.
+
 ### Segments: who can actually buy at this price
 
 `personalizedProducts` mixes ordinary offers with segmented ones. Measured on a
@@ -86,11 +93,18 @@ reported a Coca-Cola Zero at 39,072 Toman that the store lists at 112,332.
 ### Verification
 
 The campaign feed is a promotion, not a price list, so `hunt()` re-prices the
-leading offers (six by default) through `/mobile/v2/product-variation/search` —
-the endpoint the store page itself calls. The store's price wins, an offer the
-store does not list is dropped and counted in `stats.unlisted`, and the survivors
-are re-ranked. Offers below the verified head keep their campaign price and are
-not marked verified.
+leading Snapp offers (twenty by default) through
+`/mobile/v2/product-variation/search` — the endpoint the store page itself calls,
+answered with the user's own token.
+
+**A Snapp offer that is not confirmed is not shown.** One the shelf does not list
+is dropped and counted in `stats.unlisted`; one that was never checked, because it
+fell outside `verifyTop`, is dropped and counted in `stats.unverified`. The
+campaign feed alone is not evidence that this account can see the row, let alone
+buy at that price.
+
+Jet offers come from the same search the Jet site runs for the user, so they
+arrive already marked `verified` with `verifiedBy: 'search'` and pass through.
 
 Matching is by title, not id: the campaign feed and the shelf give the same
 product different `productVariationId`s.

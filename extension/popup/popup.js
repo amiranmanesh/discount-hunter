@@ -290,15 +290,41 @@ function renderResults(result, { cached }) {
   const parts = [];
   if (stats.vendorCount) parts.push(`${money.format(stats.vendorCount)} فروشگاه اطراف`);
   parts.push(`${money.format(offers.length)} پیشنهاد`);
+  if (stats.bySource) {
+    parts.push(
+      `اسنپ‌مارکت ${money.format(stats.bySource.snapp || 0)} · جت ${money.format(stats.bySource.jet || 0)}`,
+    );
+  }
   if (stats.authenticated) parts.push('حساب اسنپ‌مارکت متصل');
   if (cached) parts.push('نتیجه‌ی ذخیره‌شده');
   ui.statusBar.textContent = parts.join(' · ');
 
   const notes = [];
   if (stats.relaxed) notes.push('نتیجه‌ی دقیق پیدا نشد؛ نزدیک‌ترین موارد نمایش داده شده.');
-  if (stats.targetedSkipped) {
+  if (stats.firstOrderSkipped) {
     notes.push(
-      `${money.format(stats.targetedSkipped)} پیشنهاد «کاربر جدید» نادیده گرفته شد؛ قابل خرید نیست.`,
+      `${money.format(stats.firstOrderSkipped)} آیتم «ویژه خرید اول» اصلاً خوانده نشد؛ با حساب شما قابل خرید نیست.`,
+    );
+  }
+  if (stats.bySource) {
+    const enabled = [
+      ['snapp', 'اسنپ‌مارکت', ui.srcSnapp.checked],
+      ['jet', 'دیجی‌کالا جت', ui.srcJet.checked],
+    ];
+    const empty = enabled
+      .filter(([key, , on]) => on && !stats.bySource[key])
+      .map(([, name]) => name);
+    if (empty.length && offers.length) {
+      notes.push(
+        ui.onlyOrange.checked
+          ? `${empty.join(' و ')} چیزی نداشت — با «فقط تخفیف کمپینی» فقط کالاهای کمپین شمرده می‌شوند.`
+          : `${empty.join(' و ')} برای این جستجو چیزی نداشت.`,
+      );
+    }
+  }
+  if (stats.unverified) {
+    notes.push(
+      `${money.format(stats.unverified)} پیشنهاد نمایش داده نشد چون با توکن شما در قفسه‌ی فروشگاه تأیید نشد.`,
     );
   }
   if (stats.unlisted) {

@@ -168,12 +168,10 @@ function mapVendor(raw) {
     isOpen: raw.IsOpen !== false,
     rating: Number(raw.rating ?? 0),
     commentCount: Number(raw.comment_count ?? 0),
-    // The listing endpoint already ships a preview shelf; keep it as a cheap
-    // first pass, tagged the same way `vendorOrangeShelf` tags the full one.
-    previewProducts: [
-      ...(raw.products || []).map((product) => ({ product, personalized: false })),
-      ...(raw.personalizedProducts || []).map((product) => ({ product, personalized: true })),
-    ],
+    // `personalizedProducts` is the "ویژه خرید اول" list: offers the API will
+    // happily describe but an established account cannot see or buy. It is never
+    // read — not filtered later, not read at all.
+    previewProducts: (raw.products || []).map((product) => ({ product, personalized: false })),
   };
 }
 
@@ -195,12 +193,11 @@ export async function vendorOrangeShelf(vendor, { lat, lng }) {
   const asList = (value) => (Array.isArray(value) ? value : value?.List || []);
   return {
     endsAt: data.firstActivePeriodEndRFC || null,
-    // `personalizedProducts` is where the segmented offers live. Keep the two
-    // buckets apart so `toOffer` can mark them; see the `targeted` note there.
-    products: [
-      ...asList(data.products).map((product) => ({ product, personalized: false })),
-      ...asList(data.personalizedProducts).map((product) => ({ product, personalized: true })),
-    ],
+    // Only the general shelf. `data.personalizedProducts` is the first-order
+    // list and is deliberately ignored — see `mapVendor`. It is counted, though,
+    // so the popup can say what it left out.
+    firstOrderSkipped: asList(data.personalizedProducts).length,
+    products: asList(data.products).map((product) => ({ product, personalized: false })),
   };
 }
 
@@ -218,6 +215,10 @@ export async function collectOrangeOffers({ lat, lng, maxVendors, onProgress }) 
 
   const offers = [];
   const campaignEnds = shelves.find((s) => s && !s.__error && s.endsAt)?.endsAt || null;
+  const firstOrderSkipped = shelves.reduce(
+    (total, shelf) => total + (shelf && !shelf.__error ? shelf.firstOrderSkipped || 0 : 0),
+    0,
+  );
 
   vendors.forEach((vendor, index) => {
     const shelf = shelves[index];
@@ -232,7 +233,7 @@ export async function collectOrangeOffers({ lat, lng, maxVendors, onProgress }) 
     }
   });
 
-  return { offers, vendorCount: vendors.length, authenticated, campaignEnds };
+  return { offers, vendorCount: vendors.length, authenticated, campaignEnds, firstOrderSkipped };
 }
 
 /**
@@ -420,6 +421,7 @@ export async function verifyOffer(offer, { lat, lng }) {
   return {
     ...offer,
     verified: true,
+    verifiedBy: 'shelf',
     price,
     finalPrice: Math.max(price - discount, 0),
     discountAmount: discount,

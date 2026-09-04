@@ -12,7 +12,7 @@ export async function hunt({ query, location, options, onProgress }) {
     sortMode = 'best-discount',
     onlyOrange = true,
     onlyOpen = true,
-    verifyTop = 6,
+    verifyTop = 20,
     minDiscount = 0,
     maxVendors = 60,
   } = options || {};
@@ -24,6 +24,7 @@ export async function hunt({ query, location, options, onProgress }) {
   let vendorCount = 0;
   let authenticated = false;
   let campaignEnds = null;
+  let firstOrderSkipped = 0;
   const pool = [];
 
   const jobs = [];
@@ -42,6 +43,7 @@ export async function hunt({ query, location, options, onProgress }) {
           vendorCount += result.vendorCount;
           authenticated = result.authenticated;
           campaignEnds = result.campaignEnds;
+          firstOrderSkipped = result.firstOrderSkipped || 0;
         })
         .catch((error) => errors.push(`اسنپ‌مارکت: ${error.message}`)),
     );
@@ -77,7 +79,6 @@ export async function hunt({ query, location, options, onProgress }) {
 
   const strict = [];
   const loose = [];
-  let targetedSkipped = 0;
   for (const offer of pool) {
     const { score, strict: isStrict } = byCode
       ? { score: offer.productId === normalizedQuery ? 120 : 0, strict: true }
@@ -88,10 +89,7 @@ export async function hunt({ query, location, options, onProgress }) {
     // not purchasable by an established account — showing them as the winning
     // price is how the extension used to claim a 39,000 Toman cola the store
     // sold for 112,332. They are never shown.
-    if (offer.targeted) {
-      targetedSkipped += 1;
-      continue;
-    }
+    if (offer.targeted) continue;
     if (onlyOpen && offer.vendor?.isOpen === false) continue;
     if ((offer.discountPercent || 0) < minDiscount) continue;
     (isStrict ? strict : loose).push({ ...offer, matchScore: score, looseMatch: !isStrict });
@@ -113,23 +111,37 @@ export async function hunt({ query, location, options, onProgress }) {
   // ones the store does not list. This is what stops a segmented 39,000 Toman
   // cola from being presented as the winning price.
   let unlisted = 0;
+  let unverified = 0;
   if (verifyTop > 0 && sources.snapp) {
-    const head = ranked.slice(0, verifyTop).filter((offer) => offer.platform === 'snapp');
+    const head = ranked.filter((offer) => offer.platform === 'snapp').slice(0, verifyTop);
+    const replacements = new Map();
+
     if (head.length) {
       const checked = await snapp.verifyOffers(head, { lat, lng }).catch((error) => {
         errors.push(`راستی‌آزمایی اسنپ‌مارکت: ${error.message}`);
-        return head; // keep the unverified offers rather than losing them
+        return head.map(() => undefined); // unchecked, not confirmed missing
       });
-      const replacements = new Map();
-      head.forEach((offer, index) => replacements.set(offer, checked[index] ?? null));
+      head.forEach((offer, index) => replacements.set(offer, checked[index]));
       unlisted = checked.filter((offer) => offer === null).length;
-      ranked = rank(
-        ranked
-          .map((offer) => (replacements.has(offer) ? replacements.get(offer) : offer))
-          .filter(Boolean),
-        sortMode,
-      );
     }
+
+    // Anything from Snapp that the store's own shelf did not confirm is dropped
+    // rather than shown. The campaign feed alone is not proof that this account
+    // can see the row, let alone buy at that price.
+    const resolved = [];
+    for (const offer of ranked) {
+      if (offer.platform !== 'snapp') {
+        resolved.push(offer);
+        continue;
+      }
+      const replacement = replacements.has(offer) ? replacements.get(offer) : undefined;
+      if (replacement === null || replacement === undefined) {
+        if (replacement === undefined) unverified += 1;
+        continue;
+      }
+      resolved.push(replacement);
+    }
+    ranked = rank(resolved, sortMode);
   }
 
   return {
@@ -139,14 +151,23 @@ export async function hunt({ query, location, options, onProgress }) {
       scanned: pool.length,
       matched: matched.length,
       relaxed: strict.length === 0 && relaxed.length > 0,
-      targetedSkipped,
+      firstOrderSkipped,
       unlisted,
+      unverified,
+      bySource: countBySource(ranked),
       vendorCount,
       authenticated,
       campaignEnds,
     },
     errors,
   };
+}
+
+/** How many results each platform contributed, for the popup's status line. */
+function countBySource(offers) {
+  const counts = { snapp: 0, jet: 0 };
+  for (const offer of offers) counts[offer.platform] = (counts[offer.platform] || 0) + 1;
+  return counts;
 }
 
 export async function suggestions(query, location) {

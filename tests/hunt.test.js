@@ -31,17 +31,17 @@ const vendorRow = {
 };
 
 /**
- * One vendor whose campaign shelf can carry a plain offer and a `new_user` one,
+ * One vendor whose campaign shelf can carry a plain offer and a first-order one,
  * plus the store's own shelf that the verification step re-prices against.
  *
  * `storeShelf` defaults to listing everything the campaign advertises at the
  * campaign price, so a test only has to describe a disagreement when it wants
  * one.
  */
-function mockShelf({ general = [], targeted = [], storeShelf }) {
+function mockShelf({ general = [], firstOrder = [], storeShelf }) {
   const shelf =
     storeShelf ??
-    [...general, ...targeted].map((product) => ({
+    general.map((product) => ({
       id: product.productVariationId,
       title: product.productVariationTitle,
       price: product.price,
@@ -56,7 +56,7 @@ function mockShelf({ general = [], targeted = [], storeShelf }) {
     if (url.includes('/mobile/v2/product-variation/search')) {
       body = { data: { result: shelf, total: shelf.length } };
     } else if (url.includes('/market-party/3kj44n')) {
-      body = { data: { products: { List: general }, personalizedProducts: { List: targeted } } };
+      body = { data: { products: { List: general }, personalizedProducts: { List: firstOrder } } };
     } else {
       body = { data: { total_count: 1, vendors: [vendorRow] } };
     }
@@ -71,34 +71,33 @@ beforeEach(async () => {
 describe('hunt', () => {
   const options = { sources: { snapp: true, jet: false }, onlyOrange: true };
 
-  it('hides new-user prices by default', async () => {
+  it('ignores the first-order shelf and reports what it left out', async () => {
     // The bug this guards: a 39,072 Toman cola that only exists for a new
     // account was shown as the winning price, and the store had no such row.
     mockShelf({
       general: [cola({ price: 122100, discount: 12210, discountRatio: 10 })],
-      targeted: [cola({ productVariationId: 5686818, segment: 'new_user' })],
+      firstOrder: [cola({ productVariationId: 5686818, segment: 'new_user' })],
     });
 
     const result = await hunt({ query: 'نوشابه زیرو کوکاکولا', location: LOCATION, options });
 
     expect(result.offers).toHaveLength(1);
     expect(result.offers[0].finalPrice).toBe(109890);
-    expect(result.offers[0].targeted).toBe(false);
-    expect(result.stats.targetedSkipped).toBe(1);
+    expect(result.stats.firstOrderSkipped).toBe(1);
   });
 
-  it('never returns a segmented offer, however good it looks', async () => {
+  it('never returns a first-order offer, however good it looks', async () => {
     // There is no setting for this: an established account cannot buy these, so
     // showing them at the top of the list is always wrong.
     mockShelf({
       general: [cola({ price: 122100, discount: 12210, discountRatio: 10 })],
-      targeted: [cola({ productVariationId: 5686818, segment: 'new_user' })],
+      firstOrder: [cola({ productVariationId: 5686818, segment: 'new_user' })],
     });
 
     const result = await hunt({
       query: 'نوشابه زیرو کوکاکولا',
       location: LOCATION,
-      options: { ...options, includeTargeted: true }, // ignored on purpose
+      options: { ...options, includeTargeted: true }, // no such setting any more
     });
 
     expect(result.offers).toHaveLength(1);
@@ -106,24 +105,12 @@ describe('hunt', () => {
   });
 
   it('returns nothing rather than a price the account cannot use', async () => {
-    mockShelf({ general: [], targeted: [cola({ segment: 'new_user' })] });
+    mockShelf({ general: [], firstOrder: [cola({ segment: 'new_user' })] });
 
     const result = await hunt({ query: 'نوشابه زیرو کوکاکولا', location: LOCATION, options });
 
     expect(result.offers).toEqual([]);
-    expect(result.stats.targetedSkipped).toBe(1);
-  });
-
-  it('prefers the generally available row when both buckets list one product', async () => {
-    mockShelf({
-      general: [cola({ price: 122100, discount: 12210, discountRatio: 10 })],
-      targeted: [cola({ segment: 'new_user' })], // same productVariationId
-    });
-
-    const result = await hunt({ query: 'نوشابه زیرو کوکاکولا', location: LOCATION, options });
-
-    expect(result.offers).toHaveLength(1);
-    expect(result.offers[0]).toMatchObject({ targeted: false, finalPrice: 109890 });
+    expect(result.stats.firstOrderSkipped).toBe(1);
   });
 
   it('reports whether the search ran as the signed-in account', async () => {
@@ -203,5 +190,52 @@ describe('verification against the store shelf', () => {
     expect(result.offers).toHaveLength(1);
     expect(result.offers[0].verified).toBeUndefined();
     expect(result.stats.unlisted).toBe(0);
+  });
+});
+
+describe('only what this account can see', () => {
+  const options = { sources: { snapp: true, jet: false }, onlyOrange: false };
+
+  it('drops a Snapp offer the shelf never confirmed', async () => {
+    // Beyond `verifyTop` there is no confirmation, so the offer is not shown at
+    // all rather than shown on the campaign feed's word.
+    mockShelf({
+      general: [
+        cola({ productVariationId: 1, productVariationTitle: 'نوشابه زیرو کوکاکولا الف' }),
+        cola({ productVariationId: 2, productVariationTitle: 'نوشابه زیرو کوکاکولا ب' }),
+      ],
+      storeShelf: [
+        {
+          id: 1,
+          title: 'نوشابه زیرو کوکاکولا الف',
+          price: 122100,
+          discount: 9768,
+          discountRatio: 8,
+          stock: 5,
+        },
+      ],
+    });
+
+    const result = await hunt({
+      query: 'نوشابه زیرو کوکاکولا',
+      location: LOCATION,
+      options: { ...options, verifyTop: 1 },
+    });
+
+    expect(result.offers).toHaveLength(1);
+    expect(result.offers[0]).toMatchObject({ productId: '1', verified: true, finalPrice: 112332 });
+    expect(result.stats.unverified).toBe(1);
+  });
+
+  it('marks every surviving offer as verified', async () => {
+    mockShelf({ general: [cola()] });
+    const result = await hunt({ query: 'نوشابه زیرو کوکاکولا', location: LOCATION, options });
+    expect(result.offers.every((offer) => offer.verified)).toBe(true);
+  });
+
+  it('counts what each platform contributed', async () => {
+    mockShelf({ general: [cola()] });
+    const result = await hunt({ query: 'نوشابه زیرو کوکاکولا', location: LOCATION, options });
+    expect(result.stats.bySource).toEqual({ snapp: 1, jet: 0 });
   });
 });

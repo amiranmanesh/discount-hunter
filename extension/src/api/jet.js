@@ -119,6 +119,10 @@ function toOffer(item, query) {
     segment: 'general', // Jet does not segment its search results
     targeted: false,
     personalized: false,
+    // This row came from the same search the Jet site runs for the user, so it
+    // needs no separate confirmation step.
+    verified: true,
+    verifiedBy: 'search',
     stock: item.stock?.has_stock === false ? 0 : item.stock?.is_running_low ? 1 : 99,
     outOfStock: item.stock?.has_stock === false,
     vendor: {
