@@ -14,6 +14,8 @@
   --orange-soft: #fff2e8;
   --jet: #ef4056;
   --jet-soft: #ffecef;
+  --okala: #00a651;
+  --okala-soft: #e6f6ed;
   --pro: #7c3aed;
   --pro-soft: #f2ecff;
   --ok: #0f9d58;
@@ -36,6 +38,7 @@
     --muted: #99a2b0;
     --orange-soft: #35210f;
     --jet-soft: #351a20;
+    --okala-soft: #10281b;
     --pro-soft: #241a3d;
     --shadow: 0 1px 2px rgb(0 0 0 / 40%);
   }
@@ -454,6 +457,11 @@ a {
 .badge--jet {
   background: var(--jet-soft);
   color: var(--jet);
+}
+
+.badge--okala {
+  background: var(--okala-soft);
+  color: var(--okala);
 }
 
 .badge--campaign {

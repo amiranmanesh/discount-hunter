@@ -1,6 +1,7 @@
 // Searching for one product across both platforms.
 import * as snapp from '../api/snapp';
 import * as jet from '../api/jet';
+import * as okala from '../api/okala';
 import { dedupe, rank } from './rank';
 import { looksLikeProductCode, matchScore, normalize, tokenize, hasToken } from './text';
 import { isPoolError, pooled } from './pool';
@@ -35,13 +36,20 @@ export interface HuntResult {
   errors: string[];
 }
 
+export interface HuntTokens {
+  /** Absent when the user has not signed in to Snapp Market. */
+  snapp?: string | null;
+  jet?: string | null;
+  okala?: string | null;
+}
+
 export async function hunt(
   query: string,
   location: Location,
   options: HuntOptions,
-  snappToken: string,
-  jetToken?: string | null,
+  tokens: HuntTokens,
 ): Promise<HuntResult> {
+  const { snapp: snappToken, jet: jetToken, okala: okalaToken } = tokens;
   const {
     sources,
     sortMode,
@@ -62,7 +70,14 @@ export async function hunt(
 
   const jobs: Promise<void>[] = [];
 
-  if (sources.snapp) {
+  // "No guest mode" is about Snapp Market specifically: its campaign and its
+  // eligibility differ per account, so it is skipped rather than searched
+  // anonymously. The other platforms still answer.
+  if (sources.snapp && !snappToken) {
+    errors.push('برای نتایج اسنپ‌مارکت باید وارد حسابش شوی.');
+  }
+
+  if (sources.snapp && snappToken) {
     jobs.push(
       (async () => {
         const {
@@ -118,6 +133,19 @@ export async function hunt(
     );
   }
 
+  // Okala's search is the one call of its three that needs a token; without one
+  // the platform simply contributes nothing rather than failing the search.
+  if (sources.okala && okalaToken) {
+    jobs.push(
+      okala
+        .search(query, location, okalaToken)
+        .then((offers) => void pool.push(...offers))
+        .catch((error) => {
+          errors.push(`اوکالا: ${error instanceof Error ? error.message : String(error)}`);
+        }),
+    );
+  }
+
   await Promise.all(jobs);
 
   const strict: Offer[] = [];
@@ -148,7 +176,7 @@ export async function hunt(
   // Nothing from Snapp is shown on the campaign feed's word alone.
   let unlisted = 0;
   let unverified = 0;
-  if (verifyTop > 0 && sources.snapp) {
+  if (verifyTop > 0 && sources.snapp && snappToken) {
     const head = ranked.filter((offer) => offer.platform === 'snapp').slice(0, verifyTop);
     const replacements = new Map<Offer, Offer | null | undefined>();
     if (head.length) {
@@ -189,6 +217,7 @@ export async function hunt(
       bySource: {
         snapp: ranked.filter((offer) => offer.platform === 'snapp').length,
         jet: ranked.filter((offer) => offer.platform === 'jet').length,
+        okala: ranked.filter((offer) => offer.platform === 'okala').length,
       },
     },
     errors,

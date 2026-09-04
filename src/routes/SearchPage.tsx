@@ -36,8 +36,7 @@ export default function SearchPage() {
         term,
         location!,
         { sources, sortMode, onlyCampaign, onlyOpen, minDiscount },
-        tokens!.snapp!,
-        tokens?.jet ?? null,
+        { snapp: tokens?.snapp ?? null, jet: tokens?.jet ?? null, okala: tokens?.okala ?? null },
       ),
     onSuccess: (_, term) => settings.rememberQuery(term),
   });
@@ -75,8 +74,15 @@ export default function SearchPage() {
     return list;
   }, [result]);
 
+  // Snapp Market needs its own session; Digikala Jet needs none; Okala needs one
+  // for search. The prompt appears only when nothing at all could answer.
+  const canSearch =
+    (sources.snapp && Boolean(tokens?.snapp)) ||
+    sources.jet ||
+    (sources.okala && Boolean(tokens?.okala));
+
   if (!location) return <LocationPrompt />;
-  if (!tokensPending && !tokens?.snapp) return <SignInPrompt />;
+  if (!tokensPending && !canSearch) return <SignInPrompt />;
 
   return (
     <>
@@ -161,6 +167,14 @@ export default function SearchPage() {
           />
           دیجی‌کالا جت
         </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={sources.okala}
+            onChange={(event) => patch({ sources: { ...sources, okala: event.target.checked } })}
+          />
+          اوکالا
+        </label>
       </div>
 
       {settings.recentQueries.length > 0 && !submitted && (
@@ -203,7 +217,8 @@ export default function SearchPage() {
             {money.format(result.stats.vendorCount)} فروشگاه اطراف ·{' '}
             {money.format(result.offers.length)} پیشنهاد · اسنپ‌مارکت{' '}
             {money.format(result.stats.bySource.snapp)} · جت{' '}
-            {money.format(result.stats.bySource.jet)}
+            {money.format(result.stats.bySource.jet)} · اوکالا{' '}
+            {money.format(result.stats.bySource.okala)}
           </p>
           <div className="offer-grid">
             {result.offers.map((offer, index) => (

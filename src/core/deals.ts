@@ -3,9 +3,12 @@
 // One Snapp Market request brings twenty stores with ten campaign offers each,
 // which is what makes an endless feed affordable. Digikala Jet contributes its
 // شگفت‌انگیز row on the first page and then its paginated listing, five at a
-// time — the size the endpoint enforces.
+// time — the size the endpoint enforces. Okala's offer carousels are a single
+// unpaginated call worth roughly two hundred discounted products, so they seed
+// the first page and do not extend it.
 import * as snapp from '../api/snapp';
 import * as jet from '../api/jet';
+import * as okala from '../api/okala';
 import { dedupe } from './rank';
 import type { Location, Offer, PlatformId } from './types';
 
@@ -26,13 +29,19 @@ export interface DealsOptions {
 /** Jet pages are five rows deep, so several are pulled per feed page. */
 const JET_PAGES_PER_FEED_PAGE = 4;
 
+export interface DealsTokens {
+  snapp?: string | null;
+  jet?: string | null;
+  okala?: string | null;
+}
+
 export async function dealsPage(
   page: number,
   location: Location,
   options: DealsOptions,
-  snappToken: string | null,
-  jetToken?: string | null,
+  tokens: DealsTokens = {},
 ): Promise<DealsPage> {
+  const { snapp: snappToken, jet: jetToken } = tokens;
   const errors: string[] = [];
   const collected: Offer[] = [];
   let firstOrderSkipped = 0;
@@ -72,6 +81,20 @@ export async function dealsPage(
         }
       })().catch((error) => {
         errors.push(`دیجی‌کالا جت: ${error instanceof Error ? error.message : String(error)}`);
+      }),
+    );
+  }
+
+  // Okala needs no token for either call, and neither is paginated, so it
+  // contributes to the first page only.
+  if (options.sources.okala && page === 0) {
+    jobs.push(
+      (async () => {
+        const stores = await okala.storesNearby(location);
+        const storeIds = stores.map((store) => store.storeId).filter(Boolean);
+        collected.push(...(await okala.offers(location, storeIds)));
+      })().catch((error) => {
+        errors.push(`اوکالا: ${error instanceof Error ? error.message : String(error)}`);
       }),
     );
   }

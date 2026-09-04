@@ -18,7 +18,8 @@ export default function DealsPage() {
   const { data: tokens, isPending: tokensPending } = useTokens();
   const sentinel = useRef<HTMLDivElement>(null);
 
-  const enabled = Boolean(location) && !tokensPending && Boolean(tokens?.snapp || sources.jet);
+  const enabled =
+    Boolean(location) && !tokensPending && Boolean(tokens?.snapp || sources.jet || sources.okala);
 
   const query = useInfiniteQuery({
     queryKey: [
@@ -37,8 +38,7 @@ export default function DealsPage() {
         pageParam,
         location!,
         { sources, minDiscount, onlyOpen },
-        tokens?.snapp ?? null,
-        tokens?.jet ?? null,
+        { snapp: tokens?.snapp, jet: tokens?.jet, okala: tokens?.okala },
       ),
     getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
   });
@@ -63,7 +63,7 @@ export default function DealsPage() {
   }, [query]);
 
   if (!location) return <LocationPrompt />;
-  if (!tokensPending && !tokens?.snapp && !sources.jet) return <SignInPrompt />;
+  if (!tokensPending && !tokens?.snapp && !sources.jet && !sources.okala) return <SignInPrompt />;
 
   const errors = [...new Set((query.data?.pages ?? []).flatMap((page) => page.errors))];
   const skipped = (query.data?.pages ?? []).reduce((sum, page) => sum + page.firstOrderSkipped, 0);
@@ -101,6 +101,14 @@ export default function DealsPage() {
             onChange={(event) => patch({ sources: { ...sources, jet: event.target.checked } })}
           />
           دیجی‌کالا جت
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={sources.okala}
+            onChange={(event) => patch({ sources: { ...sources, okala: event.target.checked } })}
+          />
+          اوکالا
         </label>
         <label>
           <input

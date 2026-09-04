@@ -31,13 +31,13 @@ export const useSettings = create<State>()(
     (set) => ({
       location: null,
       sortMode: 'best-discount',
-      sources: { snapp: true, jet: true },
+      sources: { snapp: true, jet: true, okala: true },
       onlyCampaign: false,
       onlyOpen: true,
       minDiscount: 0,
       recentQueries: [],
-      sessions: { snapp: null, jet: null },
-      limits: { snapp: emptyLimit(), jet: emptyLimit() },
+      sessions: { snapp: null, jet: null, okala: null },
+      limits: { snapp: emptyLimit(), jet: emptyLimit(), okala: emptyLimit() },
 
       setLocation: (location) => set({ location }),
       patch: (settings) => set(settings),
@@ -52,7 +52,23 @@ export const useSettings = create<State>()(
     }),
     {
       name: 'discount-hunter',
-      version: 1,
+      version: 2,
+      // A stored state from before a platform existed has no entry for it, and
+      // an absent flag must not read as "off".
+      migrate: (persisted) => {
+        const state = (persisted ?? {}) as Partial<State>;
+        return {
+          ...state,
+          sources: { snapp: true, jet: true, okala: true, ...(state.sources ?? {}) },
+          limits: {
+            snapp: emptyLimit(),
+            jet: emptyLimit(),
+            okala: emptyLimit(),
+            ...(state.limits ?? {}),
+          },
+          sessions: { snapp: null, jet: null, okala: null, ...(state.sessions ?? {}) },
+        } as State;
+      },
       // Tokens live here because that is the only place they can live in a
       // browser app; they are the user's own session and never leave the device
       // except to the platform they came from.

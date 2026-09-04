@@ -1,6 +1,7 @@
 // Sign-in, sign-out and "give me a live token", for both platforms.
 import * as snapp from '../api/snapp';
 import * as jet from '../api/jet';
+import * as okala from '../api/okala';
 import { RateLimit, formatWait } from '../auth/backoff';
 import { isLive, type Session } from '../auth/session';
 import { maskPhone, normalizePhone } from '../auth/phone';
@@ -27,6 +28,12 @@ export const PLATFORMS: {
     required: false,
     note: 'اختیاری — نتایج بدون ورود هم می‌آید؛ ورود آدرس‌های ذخیره‌شده‌ات را اضافه می‌کند.',
   },
+  {
+    id: 'okala',
+    name: 'اوکالا',
+    required: false,
+    note: 'اختیاری — تخفیف‌هایش بدون ورود هم می‌آید، ولی جستجو در اوکالا توکن می‌خواهد.',
+  },
 ];
 
 const api = {
@@ -40,6 +47,11 @@ const api = {
     requestCode: (phone: string) => jet.requestCode(phone),
     verifyCode: (phone: string, code: string) => jet.verifyCode(phone, code),
     refresh: () => jet.refresh(),
+  },
+  okala: {
+    requestCode: (phone: string) => okala.requestCode(phone),
+    verifyCode: (phone: string, code: string) => okala.verifyCode(phone, code),
+    refresh: () => okala.refresh(),
   },
 } as const;
 
@@ -79,7 +91,7 @@ export async function requestCode(platform: PlatformId, rawPhone: string) {
     const result =
       platform === 'snapp'
         ? await api.snapp.requestCode(phone, location ?? undefined)
-        : await api.jet.requestCode(phone);
+        : await api[platform].requestCode(phone);
     limit.recordRequest();
     saveLimit(platform, limit);
     return {
@@ -113,7 +125,7 @@ export async function verifyCode(platform: PlatformId, rawPhone: string, code: s
     const session =
       platform === 'snapp'
         ? await api.snapp.verifyCode(phone, code.trim(), location ?? undefined)
-        : await api.jet.verifyCode(phone, code.trim());
+        : await api[platform].verifyCode(phone, code.trim());
     limit.reset();
     saveLimit(platform, limit);
     setSession(platform, session);
@@ -151,7 +163,7 @@ export async function accessToken(platform: PlatformId): Promise<string | null> 
     const refreshed =
       platform === 'snapp'
         ? await api.snapp.refresh(session, state.location ?? undefined)
-        : await api.jet.refresh();
+        : await api[platform].refresh();
     state.setSession(platform, refreshed);
     return refreshed.accessToken;
   } catch {
