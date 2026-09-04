@@ -6,6 +6,35 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-09-04
+
+### Fixed
+
+- **Prices that did not exist in the store.** The campaign feed's
+  `personalizedProducts` bucket mixes ordinary offers with segmented ones, and
+  every 90-99% discount in it is `segment: new_user`. Those prices are not
+  purchasable by an established account, so the extension was reporting a
+  Coca-Cola Zero at 39,072 Toman that the store actually lists at 112,332.
+  Segmented offers are now excluded by default, labelled `تخفیف کاربر جدید` when
+  the new **تخفیف کاربر جدید** filter turns them back on, and the popup says how
+  many were skipped.
+- **Silent downgrade to an anonymous session.** The content script only looked
+  for the token in the persisted redux slice, which is empty for part of the
+  session's life — the current site build keeps it under a bare `JWT` key. It now
+  scans every `localStorage` entry, accepts only a live, account-bound JWT, and
+  reports the signed-out state instead of letting the extension quietly fall back
+  to anonymous pricing (which is served the new-user campaign, the very offers
+  above).
+
+### Added
+
+- **Verification against the store's own shelf.** The leading offers are
+  re-priced through `/mobile/v2/product-variation/search`, the endpoint the store
+  page itself calls. The store's price wins, offers the store does not list are
+  dropped, and a verified row is marked `✓ قیمت از خود فروشگاه`.
+- `npm run verify-offer` — a ground-truth tool that runs one query the way the
+  extension does, then opens the winning store and compares.
+
 ## [1.0.0] — 2026-09-04
 
 First working release.

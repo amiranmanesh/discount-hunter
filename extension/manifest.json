@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "شکارچی تخفیف — Discount Hunter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "بیشترین تخفیف نارنجی اسنپ‌مارکت و شگفت‌انگیز دیجی‌کالا جت را در فروشگاه‌های اطراف پیدا کن.",
   "default_locale": "fa",
   "permissions": [
