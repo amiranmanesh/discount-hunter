@@ -4,6 +4,8 @@
   <p><strong>Every Snapp Market and Digikala Jet discount near you, deepest first — as an installable web app.</strong></p>
   <p><strong>English</strong> · <a href="README.fa.md">فارسی</a></p>
   <p>
+    <a href="https://amiranmanesh.github.io/discount-hunter/">Website</a> ·
+    <a href="https://github.com/amiranmanesh/discount-hunter/wiki">Wiki</a> ·
     <a href="#run-it">Run it</a> ·
     <a href="docs/ARCHITECTURE.md">Architecture</a> ·
     <a href="docs/API.md">Endpoints</a> ·
@@ -11,7 +13,9 @@
     <a href="docs/DEVELOPMENT.md">Development</a>
   </p>
   <p>
+    <a href="https://github.com/amiranmanesh/discount-hunter/actions/workflows/release.yml"><img alt="Release" src="https://github.com/amiranmanesh/discount-hunter/actions/workflows/release.yml/badge.svg" /></a>
     <a href="https://github.com/amiranmanesh/discount-hunter/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/amiranmanesh/discount-hunter/actions/workflows/ci.yml/badge.svg" /></a>
+    <a href="https://github.com/amiranmanesh/discount-hunter/pkgs/container/discount-hunter"><img alt="Container image" src="https://img.shields.io/badge/ghcr.io-discount--hunter-2496ed?logo=docker&logoColor=white" /></a>
     <img alt="React 19" src="https://img.shields.io/badge/react-19-149eca" />
     <img alt="PWA" src="https://img.shields.io/badge/PWA-installable-ff5f00" />
     <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue" /></a>
