@@ -51,6 +51,9 @@ behind the same rate-limit budget.
 - `GET /healthz`, answered without touching either upstream, so a container
   health check reports on this process rather than on Snapp Market.
 - `compose.yaml` and [`docs/DEPLOY.md`](docs/DEPLOY.md) for self-hosting.
+- A project site on GitHub Pages and a wiki mirrored from `wiki/`, plus issue and
+  pull request templates. The site is a landing page, not the app: the app cannot
+  live on Pages, because it has to be served next to its proxy.
 
   The runtime image carries no `node_modules`: the server uses only Node
   built-ins, so it is the bundle, the server and a Node base image.

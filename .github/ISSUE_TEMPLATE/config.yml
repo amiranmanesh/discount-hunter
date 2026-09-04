@@ -1,11 +1,14 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Documentation and troubleshooting
-    url: https://github.com/amiranmanesh/discount-hunter-extension/wiki
-    about: Installation, how the ranking works, and the troubleshooting guide
+  - name: Documentation
+    url: https://github.com/amiranmanesh/discount-hunter/wiki
+    about: Installation, usage, ranking, and the troubleshooting guide
+  - name: Why a price might look wrong
+    url: https://github.com/amiranmanesh/discount-hunter/wiki/Trust
+    about: The three rules that decide whether a price is shown
   - name: Endpoint reference
-    url: https://github.com/amiranmanesh/discount-hunter-extension/blob/main/docs/api-notes.md
-    about: Every Snapp Market and Digikala Jet endpoint the extension uses
+    url: https://github.com/amiranmanesh/discount-hunter/blob/main/docs/API.md
+    about: Every Snapp Market and Digikala Jet endpoint the app uses
   - name: Security issue
-    url: https://github.com/amiranmanesh/discount-hunter-extension/security/advisories/new
+    url: https://github.com/amiranmanesh/discount-hunter/security/advisories/new
     about: Please report vulnerabilities privately

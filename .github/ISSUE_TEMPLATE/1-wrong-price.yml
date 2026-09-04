@@ -1,0 +1,45 @@
+name: A price looks wrong
+description: A result you cannot actually buy, or a price the store does not have
+labels: ['results']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Prices are personalised and time-limited, so please include what the app
+        showed and what the store actually says.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did you see it?
+      options: ['تخفیف‌ها (the feed)', 'جستجو (search)']
+    validations:
+      required: true
+  - type: input
+    id: product
+    attributes:
+      label: Product and store
+      placeholder: نوشابه کولا زیرو کوکاکولا ۱.۵ لیتری — سوپر مارکت لیا
+    validations:
+      required: true
+  - type: input
+    id: shown
+    attributes:
+      label: Price the app showed
+      placeholder: ۳۹٬۰۷۲ تومان (۶۸٪)
+    validations:
+      required: true
+  - type: input
+    id: actual
+    attributes:
+      label: Price the store shows
+      placeholder: ۱۱۲٬۳۳۲ تومان (۸٪)
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before reporting
+      options:
+        - label: The card did **not** say `✓ قیمت از خود فروشگاه`
+        - label: The size in the title matches the product I compared against
+        - label: I am signed in to Snapp Market

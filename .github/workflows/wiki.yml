@@ -1,0 +1,53 @@
+name: Wiki
+
+# The GitHub wiki is its own git repository. Keeping the pages in `wiki/` means
+# they are reviewed in pull requests like the rest of the docs, and this job
+# mirrors them across on merge.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      - '.github/workflows/wiki.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Mirror wiki/ into the GitHub wiki
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Copy the pages across
+        env:
+          WIKI: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # A wiki that has never had a page cannot be cloned, so fall back to
+          # creating the repository and pushing the first commit.
+          if git clone --depth 1 "$WIKI" wiki-repo 2>/dev/null; then
+            find wiki-repo -maxdepth 1 -name '*.md' -delete
+          else
+            echo "wiki not initialised yet — creating it"
+            mkdir wiki-repo && git -C wiki-repo init -b master
+            git -C wiki-repo remote add origin "$WIKI"
+          fi
+
+          cp wiki/*.md wiki-repo/
+          cd wiki-repo
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date"
+            exit 0
+          fi
+          git commit -m "docs(wiki): sync from ${GITHUB_SHA:0:7}"
+          git push origin HEAD:master

@@ -1,14 +1,13 @@
 name: An endpoint changed
-description: A Snapp Market or Digikala Jet API stopped answering the way the extension expects
+description: A Snapp Market or Digikala Jet API stopped answering the way the app expects
 labels: ['api']
 body:
   - type: markdown
     attributes:
       value: |
-        These are undocumented APIs, so they change without notice.
-        [`docs/api-notes.md`](../../blob/main/docs/api-notes.md) records the shapes
-        the extension relies on, and `npm run browser:recon` captures live traffic
-        into `probe-out/`.
+        These are undocumented APIs and they change without notice.
+        [`docs/API.md`](../../blob/main/docs/API.md) records the shapes the app
+        relies on.
   - type: dropdown
     id: platform
     attributes:
@@ -20,20 +19,14 @@ body:
     id: endpoint
     attributes:
       label: Endpoint
-      placeholder: GET /market-party/{vendorCode}
+      placeholder: GET /api/snapp/market-party/{vendorCode}
     validations:
       required: true
   - type: textarea
     id: error
     attributes:
-      label: What the popup showed
-      description: The error banner text, or the response body if you captured it.
+      label: What the app showed, and what the response looked like
+      description: Strip the `Authorization` header before pasting — it identifies your account.
       render: text
     validations:
       required: true
-  - type: textarea
-    id: capture
-    attributes:
-      label: Relevant lines from probe-out/ (optional)
-      description: Remove your bearer token before pasting. It identifies your account.
-      render: json

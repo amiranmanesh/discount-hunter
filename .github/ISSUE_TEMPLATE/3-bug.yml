@@ -1,5 +1,5 @@
 name: Bug
-description: Something in the extension itself is broken
+description: Something in the app itself is broken
 labels: ['bug']
 body:
   - type: textarea
@@ -19,24 +19,19 @@ body:
     validations:
       required: true
   - type: input
-    id: browser
+    id: device
     attributes:
-      label: Browser and version
-      placeholder: Chrome 151
+      label: Device and browser
+      placeholder: iPhone 15, Safari 18 / Chrome 151 on macOS
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: Extension version
-      placeholder: 1.0.0
-    validations:
-      required: true
+      label: Version or image tag
+      placeholder: 2.0.0 / ghcr.io/…:latest
   - type: textarea
     id: console
     attributes:
       label: Console output
-      description: |
-        Errors from the popup (right-click the popup → Inspect) and from the
-        service worker (chrome://extensions → Service worker).
       render: text

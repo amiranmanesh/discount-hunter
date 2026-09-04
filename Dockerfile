@@ -24,6 +24,15 @@ RUN npm run build
 # -------------------------------------------------------------- runtime ----
 FROM node:22-alpine AS runtime
 
+# These are what tie the published package to the repository on GitHub, and what
+# fills in its description and licence on the Packages page.
+LABEL org.opencontainers.image.source="https://github.com/amiranmanesh/discount-hunter" \
+      org.opencontainers.image.url="https://amiranmanesh.github.io/discount-hunter/" \
+      org.opencontainers.image.documentation="https://github.com/amiranmanesh/discount-hunter/blob/main/docs/DEPLOY.md" \
+      org.opencontainers.image.title="Discount Hunter" \
+      org.opencontainers.image.description="Every Snapp Market and Digikala Jet discount near you, deepest first." \
+      org.opencontainers.image.licenses="MIT"
+
 ENV NODE_ENV=production \
     PORT=4173 \
     HOST=0.0.0.0

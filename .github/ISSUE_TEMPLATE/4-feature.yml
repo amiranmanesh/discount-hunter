@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest something the extension should do
+description: Suggest something the app should do
 labels: ['enhancement']
 body:
   - type: textarea
@@ -18,4 +18,4 @@ body:
     attributes:
       label: Scope
       options:
-        - label: This works with the APIs the extension already calls, as far as I know
+        - label: This works with the APIs the app already calls, as far as I know

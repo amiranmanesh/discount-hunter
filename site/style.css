@@ -1,0 +1,271 @@
+:root {
+  color-scheme: light dark;
+  --bg: #fbfbfd;
+  --surface: #fff;
+  --surface-2: #f2f3f6;
+  --border: #e4e6eb;
+  --text: #14161a;
+  --muted: #616a76;
+  --orange: #ff5f00;
+  --accent: #ef4056;
+  --radius: 14px;
+  --wrap: 1020px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1014;
+    --surface: #16191f;
+    --surface-2: #1d2129;
+    --border: #282d37;
+    --text: #e8eaee;
+    --muted: #99a2b0;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    16px/1.75 'Vazirmatn',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    system-ui,
+    sans-serif;
+}
+
+.wrap {
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+
+a {
+  color: var(--orange);
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+}
+
+pre {
+  overflow-x: auto;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  direction: ltr;
+  text-align: left;
+}
+
+header.site {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+header.site .wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 58px;
+}
+
+.brand {
+  font-weight: 700;
+}
+
+header.site nav {
+  margin-inline-start: auto;
+  display: flex;
+  gap: 18px;
+  font-size: 14px;
+}
+
+header.site nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+header.site nav a:hover {
+  color: var(--orange);
+}
+
+.hero {
+  padding: 64px 20px 30px;
+  text-align: center;
+}
+
+.hero h1 {
+  margin: 0 0 14px;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.lead {
+  max-width: 640px;
+  margin: 0 auto 26px;
+  color: var(--muted);
+  font-size: 17px;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.button {
+  display: inline-block;
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.button:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.button--primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, #ff8a00, var(--accent));
+  color: #fff;
+  font-weight: 600;
+}
+
+.button--primary:hover {
+  color: #fff;
+  filter: brightness(1.06);
+}
+
+.shots {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.shots img {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgb(20 22 26 / 12%);
+  max-width: 100%;
+}
+
+.shots img.phone {
+  width: 240px;
+}
+
+.shots img.laptop {
+  width: 560px;
+}
+
+section {
+  padding: 46px 0;
+  border-top: 1px solid var(--border);
+}
+
+section h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+
+section > .wrap > p {
+  color: var(--muted);
+  max-width: 680px;
+}
+
+.grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 24px;
+}
+
+.card {
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.card h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14.5px;
+}
+
+table.plain {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 15px;
+}
+
+table.plain th,
+table.plain td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+}
+
+table.plain th {
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.note {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--orange) 10%, transparent);
+  font-size: 14.5px;
+  margin-top: 20px;
+}
+
+footer.site {
+  padding: 30px 0 50px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+footer.site .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+}
+
+footer.site nav {
+  margin-inline-start: auto;
+  display: flex;
+  gap: 16px;
+}
