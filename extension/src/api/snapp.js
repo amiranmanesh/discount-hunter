@@ -14,7 +14,6 @@ const BASE = 'https://svc.snapp.market';
 const APP_VERSION = '1.399.10';
 const PAGE_SIZE = 20;
 const SESSION_TOKEN_KEY = 'snappSessionToken'; // written by the content script when logged in
-const ANON_TOKEN_KEY = 'snappAnonToken';
 const UDID_KEY = 'snappUdid';
 
 const COMMON_HEADERS = {
@@ -42,50 +41,27 @@ function jwtExpiry(token) {
   }
 }
 
-async function mintAnonymousToken(udid) {
-  const url = `${BASE}/oauth2/default/token?client=PWA&deviceType=PWA&appVersion=${APP_VERSION}&UDID=${udid}`;
-  const body = {
-    data: {
-      time: new Date().toISOString(),
-      device_uid: udid,
-      client_id: 'snappfood_pwa',
-      grant_type: 'client_credentials',
-      scope: 'mobile_v2 mobile_v1 webview',
-      client_secret: 'snappfood_pwa_secret',
-    },
-  };
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: COMMON_HEADERS,
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) throw new Error(`دریافت توکن اسنپ‌مارکت ناموفق بود (${response.status})`);
-  const json = await response.json();
-  const token = json?.data?.access_token;
-  if (!token) throw new Error('پاسخ توکن اسنپ‌مارکت نامعتبر بود');
-  return token;
+/**
+ * The signed-in Snapp Market session, or nothing.
+ *
+ * There is deliberately no anonymous fallback. A guest session is a different
+ * account with a different campaign and different eligibility, so answering with
+ * it means answering a question the user did not ask. Callers surface
+ * `NotSignedInError` and the popup asks the user to sign in.
+ */
+export class NotSignedInError extends Error {
+  constructor() {
+    super('برای جستجو باید در یک تب snapp.market وارد حسابت باشی');
+    this.name = 'NotSignedInError';
+    this.notSignedIn = true;
+  }
 }
 
-/**
- * Prefer the logged-in token captured from an open snapp.market tab (it unlocks
- * Pro pricing and personalised offers); fall back to an anonymous token.
- */
 export async function getToken() {
-  const now = Date.now();
   const session = await getSession(SESSION_TOKEN_KEY);
-  if (session?.token && jwtExpiry(session.token) > now + 60_000) {
-    return { token: session.token, authenticated: true };
-  }
-
-  const cached = await getSession(ANON_TOKEN_KEY);
-  if (cached?.token && jwtExpiry(cached.token) > now + 60_000) {
-    return { token: cached.token, authenticated: false };
-  }
-
-  const udid = await getUdid();
-  const token = await mintAnonymousToken(udid);
-  await setSession(ANON_TOKEN_KEY, { token, createdAt: now });
-  return { token, authenticated: false };
+  if (!session?.token) throw new NotSignedInError();
+  if (jwtExpiry(session.token) <= Date.now() + 60_000) throw new NotSignedInError();
+  return { token: session.token, authenticated: true };
 }
 
 async function call(path, params, { token }) {

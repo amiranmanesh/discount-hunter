@@ -24,6 +24,8 @@ const ui = {
   progressBar: el('progressBar'),
   progressText: el('progressText'),
   banner: el('banner'),
+  signinGate: el('signinGate'),
+  openSignin: el('openSignin'),
   results: el('results'),
   statusBar: el('statusBar'),
   template: el('offerTemplate'),
@@ -43,7 +45,11 @@ function send(message) {
     chrome.runtime.sendMessage(message, (response) => {
       const runtimeError = chrome.runtime.lastError;
       if (runtimeError) return reject(new Error(runtimeError.message));
-      if (!response?.ok) return reject(new Error(response?.error || 'خطای ناشناخته'));
+      if (!response?.ok) {
+        const error = new Error(response?.error || 'خطای ناشناخته');
+        error.notSignedIn = Boolean(response?.notSignedIn);
+        return reject(error);
+      }
       resolve(response.result);
     });
   });
@@ -73,14 +79,26 @@ function init(loaded) {
     renderEmpty('نام کالا را بنویس تا بین فروشگاه‌های اطرافت دنبال بیشترین تخفیف بگردم.');
   }
 
-  if (!state.session?.snappLoggedIn) {
-    showBanner(
-      state.session?.expired
-        ? 'نشست اسنپ‌مارکت منقضی شده. تب <b>snapp.market</b> را باز و رفرش کن، وگرنه قیمت‌ها مهمان است.'
-        : 'برای قیمت‌های «پرو» و درست، یک تب <b>snapp.market</b> باز کن و وارد حساب شو. بدون آن هم جستجو کار می‌کند، اما قیمت‌ها مهمان است.',
-    );
+  applySignInState(state.session);
+}
+
+/* ---------- sign-in gate ---------- */
+
+/** No session, no search: a guest sees a different campaign and different prices. */
+function applySignInState(session) {
+  const signedIn = Boolean(session?.snappLoggedIn);
+  ui.signinGate.hidden = signedIn;
+  ui.searchButton.disabled = !signedIn || busy;
+  ui.queryInput.disabled = !signedIn;
+  if (!signedIn && session?.expired) {
+    ui.signinGate.querySelector('strong').textContent = 'نشست اسنپ‌مارکت منقضی شده';
   }
 }
+
+ui.openSignin.addEventListener('click', async () => {
+  await send({ type: 'open-signin' }).catch(showError);
+  window.close();
+});
 
 /* ---------- location ---------- */
 
@@ -265,10 +283,14 @@ async function runHunt() {
     renderResults(result, { cached: false });
   } catch (error) {
     showError(error);
+    if (error?.notSignedIn) {
+      state = { ...state, session: { snappLoggedIn: false } };
+      applySignInState(state.session);
+    }
   } finally {
     busy = false;
-    ui.searchButton.disabled = false;
     ui.progress.hidden = true;
+    applySignInState(state.session);
   }
 }
 
@@ -331,9 +353,6 @@ function renderResults(result, { cached }) {
     notes.push(
       `${money.format(stats.unlisted)} پیشنهاد حذف شد چون در قفسه‌ی خود فروشگاه پیدا نشد.`,
     );
-  }
-  if (!stats.authenticated) {
-    notes.push('بدون حساب متصل — قیمت‌ها مهمان است و ممکن است با فروشگاه فرق کند.');
   }
   if (result.errors?.length) notes.push(...result.errors);
   if (notes.length) showBanner(notes.map(escapeHtml).join(' — '));

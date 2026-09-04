@@ -242,24 +242,34 @@ describe('searchOffers', () => {
 });
 
 describe('authentication', () => {
-  it('mints an anonymous token when no session token is stored', async () => {
+  it('refuses to search without a session rather than falling back to a guest one', async () => {
+    // A guest session is a different account with a different campaign, so an
+    // answer built from it answers a question the user did not ask.
     await chrome.storage.local.set({ snappSessionToken: null });
     const fetchMock = mockSnapp({
-      '/oauth2/default/token': { data: { access_token: fakeJwt() } },
+      '/market-party/35.722358': { data: { total_count: 0, vendors: [] } },
+    });
+
+    await expect(collectOrangeOffers({ ...LOCATION, maxVendors: 1 })).rejects.toMatchObject({
+      notSignedIn: true,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses an expired session token too', async () => {
+    await chrome.storage.local.set({ snappSessionToken: { token: fakeJwt(-10) } });
+    await expect(collectOrangeOffers({ ...LOCATION, maxVendors: 1 })).rejects.toMatchObject({
+      notSignedIn: true,
+    });
+  });
+
+  it('uses the stored session token when it is still valid', async () => {
+    const fetchMock = mockSnapp({
       '/market-party/35.722358': { data: { total_count: 0, vendors: [] } },
     });
 
     const { authenticated } = await collectOrangeOffers({ ...LOCATION, maxVendors: 1 });
-    expect(authenticated).toBe(false);
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/oauth2/'))).toBe(true);
-  });
-
-  it('does not mint a token when the stored session token is still valid', async () => {
-    const fetchMock = mockSnapp({
-      '/market-party/35.722358': { data: { total_count: 0, vendors: [] } },
-    });
-
-    await collectOrangeOffers({ ...LOCATION, maxVendors: 1 });
+    expect(authenticated).toBe(true);
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/oauth2/'))).toBe(false);
   });
 });

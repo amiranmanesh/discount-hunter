@@ -8,7 +8,13 @@ const LAST_RESULT_KEY = 'lastResult';
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   handle(message)
     .then((result) => sendResponse({ ok: true, result }))
-    .catch((error) => sendResponse({ ok: false, error: error?.message || String(error) }));
+    .catch((error) =>
+      sendResponse({
+        ok: false,
+        error: error?.message || String(error),
+        notSignedIn: Boolean(error?.notSignedIn),
+      }),
+    );
   return true; // keep the channel open for the async reply
 });
 
@@ -40,6 +46,13 @@ async function handle(message) {
     case 'open-url':
       await chrome.tabs.create({ url: message.url, active: true });
       return true;
+    case 'open-signin': {
+      const [existing] = await chrome.tabs.query({ url: 'https://snapp.market/*' });
+      if (existing)
+        await chrome.tabs.update(existing.id, { active: true, url: 'https://snapp.market/' });
+      else await chrome.tabs.create({ url: 'https://snapp.market/', active: true });
+      return true;
+    }
     case 'clear-result':
       await setSession(LAST_RESULT_KEY, null);
       return true;
@@ -119,6 +132,15 @@ async function sessionSummary() {
 async function runHunt({ query, location, options }) {
   if (!query?.trim()) throw new Error('نام یا کد کالا را وارد کن');
   if (!location?.lat || !location?.lng) throw new Error('اول موقعیت مکانی را مشخص کن');
+
+  // No guest mode. A guest session sees a different campaign and different
+  // eligibility, so its prices answer a question the user did not ask.
+  const { snappLoggedIn } = await sessionSummary();
+  if (!snappLoggedIn) {
+    const error = new Error('برای جستجو باید در یک تب snapp.market وارد حسابت باشی');
+    error.notSignedIn = true;
+    throw error;
+  }
 
   const state = await getState();
   const merged = { ...state, ...options };
