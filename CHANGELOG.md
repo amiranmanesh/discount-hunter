@@ -30,12 +30,39 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- **Digikala Jet sign-in support.** The token lives in `persist:DKNow` and is sent
-  bare, with no `Bearer` prefix. Search returns identical rows and prices with or
-  without it — verified against a live account — so it is used only to offer the
-  account's saved Jet addresses, which now appear in the location picker next to
-  the Snapp Market ones and are labelled by platform.
-- Digikala Jet is queried again by default.
+- **Sign in from the extension, per platform.** Phone number and SMS code, one
+  panel per platform, no more borrowing the website's token. Snapp Market goes
+  through `loginMobileWithNoPass` / `loginMobileWithToken`, Digikala Jet through
+  `login-register` / `confirm-phone`; both payloads were captured from a real
+  login rather than guessed.
+
+  This is what fixes the constant "sign in again". The site's token lives about
+  an hour and came with no way to renew it. Logging in ourselves means holding
+  the refresh token, so the session renews before a request instead of failing
+  after one — Snapp's through `grant_type: refresh_token`, Jet's on a token good
+  for a day with a ninety-day refresh behind it.
+
+  Snapp Market is the only account the search needs; Jet's search takes no token,
+  so signing in there only adds that account's saved addresses. The accounts
+  panel stays reachable from the header after the gate closes, so the second
+  account can be linked, or either signed out, at any time.
+
+  Both flows sit behind one rate-limit budget per platform: a two-minute resend
+  cooldown with a live countdown, five codes per fifteen minutes, five attempts
+  per code, and a server `Retry-After` honoured in either form and never
+  shortened. A rejected request still counts — it is one SMS against the number.
+
+- **Firefox and Safari packages.** One source tree, three targets:
+  `npm run build` produces `dist/chrome` and `dist/firefox`, and
+  `npm run build:safari` wraps the Chromium package in an Xcode project with
+  Apple's converter. Firefox runs the background as an event page from a bundled
+  classic script, because its support for module background scripts is too recent
+  to depend on; everything else is byte-identical. CI runs `web-ext lint` and the
+  release workflow can sign through AMO. Only Chromium has been verified on a
+  live session — see `docs/BROWSER-SUPPORT.md`.
+
+- **Digikala Jet saved addresses.** They appear in the location picker beside the
+  Snapp Market ones, labelled by platform. Jet is queried by default again.
 
 ## [1.0.1] — 2026-09-04
 
