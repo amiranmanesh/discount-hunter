@@ -1,44 +1,51 @@
 {
   "name": "discount-hunter",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Find the deepest Snapp Market orange discount for a product across every store that delivers to you.",
+  "description": "Find the deepest Snapp Market and Digikala Jet discounts near you — an installable PWA.",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
-    "clean": "rm -rf dist release",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "start": "node server/index.mjs",
     "icons": "node scripts/gen-icons.mjs",
-    "manifest": "node scripts/manifest.mjs --write",
-    "build": "node scripts/build.mjs",
-    "build:chrome": "node scripts/build.mjs --target chrome",
-    "build:firefox": "node scripts/build.mjs --target firefox",
-    "build:safari": "node scripts/safari.mjs",
-    "dev": "node scripts/build.mjs --watch",
-    "package": "node scripts/build.mjs --zip",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "browser": "node scripts/browser.mjs",
-    "browser:recon": "node scripts/recon.mjs",
-    "e2e": "node scripts/e2e.mjs",
-    "shot": "node scripts/shot.mjs",
-    "verify-offer": "node scripts/verify-offer.mjs",
-    "audit": "node scripts/audit.mjs",
-    "verify": "npm run format:check && npm run lint && npm test && npm run build"
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.102.8",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^8.3.1",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "esbuild": "^0.28.2",
+    "@types/node": "^26.4.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^10.9.1",
+    "eslint-plugin-react-hooks": "^7.0.0",
     "globals": "^17.11.0",
+    "jsdom": "^30.0.1",
     "playwright": "^1.62.1",
     "prettier": "^3.4.2",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.20.0",
+    "vite": "^8.2.2",
+    "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4.1.11"
   }
 }

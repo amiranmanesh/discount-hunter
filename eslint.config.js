@@ -1,64 +1,48 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
+import reactHooks from 'eslint-plugin-react-hooks';
 
-export default [
+export default tseslint.config(
   {
     ignores: [
       'dist/**',
-      'release/**',
+      'dev-dist/**',
       'coverage/**',
       'node_modules/**',
-      // Driven-browser profiles and captured API traffic.
-      '.browser-profile/**',
-      'probe-out/**',
-      'recon/**',
+      'public/icons/**',
+      // Tooling packs vendored into the working copy; not this project's source.
+      '.claude/**',
+      '.agents/**',
     ],
   },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    // The extension itself: browser globals plus the WebExtension APIs.
-    files: ['extension/**/*.js'],
+    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2023,
-      sourceType: 'module',
-      globals: { ...globals.browser, ...globals.webextensions },
+      globals: globals.browser,
     },
+    plugins: { 'react-hooks': reactHooks },
     rules: {
+      ...reactHooks.configs.recommended.rules,
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-non-null-assertion': 'off',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       eqeqeq: ['error', 'always'],
       'prefer-const': 'error',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
   {
-    // Build and tooling scripts run in Node, but the Playwright ones also carry
-    // callbacks that are serialised into a page, so both global sets apply.
-    files: ['scripts/**/*.mjs'],
-    languageOptions: {
-      ecmaVersion: 2023,
-      sourceType: 'module',
-      globals: { ...globals.node, ...globals.browser, ...globals.webextensions },
-    },
-    rules: {
-      'no-console': 'off',
-      'no-unused-vars': [
-        'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
-      ],
-    },
+    // The server and the build scripts run in Node.
+    files: ['server/**/*.mjs', 'scripts/**/*.mjs', 'vite.config.ts'],
+    languageOptions: { globals: globals.node },
+    rules: { 'no-console': 'off' },
   },
   {
-    files: ['tests/**/*.js'],
-    languageOptions: {
-      ecmaVersion: 2023,
-      sourceType: 'module',
-      globals: { ...globals.node, ...globals.webextensions },
-    },
-    rules: {
-      'no-unused-vars': [
-        'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
-      ],
-    },
+    files: ['tests/**/*.{ts,tsx}'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
-];
+);

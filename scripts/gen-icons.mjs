@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates the extension icons as PNGs with no image dependencies.
+ * Generates the app icons as PNGs with no image dependencies.
  *
  * The artwork is a rounded square in the Snapp orange gradient holding a
  * magnifier whose lens contains a percent sign — "hunt for the discount" in one
@@ -15,11 +15,8 @@ import path from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 
-/** Where each size is used: the manifest needs 16-128, the site and stores need the big ones. */
-const OUTPUTS = [
-  { dir: path.join(root, 'public/icons'), sizes: [16, 32, 48, 128, 256, 512] },
-  { dir: path.join(root, 'extension/icons'), sizes: [16, 32, 48, 128] },
-];
+/** 192 and 512 are what the web app manifest asks for; the rest are favicons. */
+const OUTPUTS = [{ dir: path.join(root, 'public/icons'), sizes: [32, 96, 192, 512] }];
 
 const SUPERSAMPLE = 4;
 

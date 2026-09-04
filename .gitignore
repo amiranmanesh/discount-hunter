@@ -1,14 +1,10 @@
 node_modules/
 dist/
-release/
+dev-dist/
 coverage/
-*.zip
 *.log
 .DS_Store
 .vscode/
 .idea/
-
-# Driven-browser profiles and captured API traffic.
-.browser-profile/
-probe-out/
-recon/
+.claude/
+.agents/
