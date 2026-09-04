@@ -6,7 +6,7 @@
 # `dist/` and forwarding `/api/*`.
 
 # ---------------------------------------------------------------- build ----
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ COPY server ./server
 RUN npm run build
 
 # -------------------------------------------------------------- runtime ----
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 
 # These are what tie the published package to the repository on GitHub, and what
 # fills in its description and licence on the Packages page.
