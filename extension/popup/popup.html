@@ -72,13 +72,51 @@
     </section>
 
     <section id="signinGate" class="gate" hidden>
-      <strong>برای جستجو باید وارد اسنپ‌مارکت باشی</strong>
+      <strong id="gateTitle">برای جستجو باید وارد حسابت باشی</strong>
       <p>
         قیمت‌ها و شرایط خرید به حساب تو بستگی دارد. بدون نشست تو، افزونه قیمتی نشان می‌دهد که مال
         حساب دیگری است — پس اصلاً جستجو نمی‌کند.
       </p>
-      <button id="openSignin" class="primary" type="button">باز کردن snapp.market</button>
+      <div id="accounts" class="accounts"></div>
     </section>
+
+    <template id="accountTemplate">
+      <div class="account">
+        <div class="account-head">
+          <span class="account-name"></span>
+          <span class="account-state"></span>
+          <button class="account-action ghost" type="button"></button>
+        </div>
+        <form class="account-form" hidden>
+          <label class="account-field phone-field">
+            <span>شماره موبایل</span>
+            <input
+              class="phone"
+              type="tel"
+              inputmode="numeric"
+              placeholder="09123456789"
+              autocomplete="tel"
+            />
+          </label>
+          <label class="account-field code-field" hidden>
+            <span>کد پیامک‌شده</span>
+            <input
+              class="code"
+              type="text"
+              inputmode="numeric"
+              placeholder="کد تأیید"
+              autocomplete="one-time-code"
+            />
+          </label>
+          <div class="account-actions">
+            <button class="submit primary" type="submit">ارسال کد</button>
+            <button class="resend ghost" type="button" hidden>ارسال دوباره</button>
+            <button class="back ghost" type="button" hidden>تغییر شماره</button>
+          </div>
+          <p class="account-note"></p>
+        </form>
+      </div>
+    </template>
 
     <div id="progress" class="progress" hidden>
       <div id="progressBar"></div>

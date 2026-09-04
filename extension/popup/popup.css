@@ -488,3 +488,83 @@ button {
   color: var(--muted);
   line-height: 1.7;
 }
+
+/* Sign-in ------------------------------------------------------------- */
+
+.accounts {
+  display: grid;
+  gap: 8px;
+}
+
+.account {
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.account-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.account-name {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.account-state {
+  flex: 1;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.account.linked .account-state {
+  color: var(--ok);
+}
+
+.account-action {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.account-form {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.account-field {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.account-field input {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.account-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.account-actions button {
+  padding: 6px 12px;
+  font-size: 11.5px;
+}
+
+.account-note {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.7;
+  color: var(--muted);
+  min-height: 1em;
+}
+
+.account-note.error {
+  color: var(--jet);
+}

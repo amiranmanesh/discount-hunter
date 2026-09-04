@@ -25,7 +25,8 @@ const ui = {
   progressText: el('progressText'),
   banner: el('banner'),
   signinGate: el('signinGate'),
-  openSignin: el('openSignin'),
+  accounts: el('accounts'),
+  accountTemplate: el('accountTemplate'),
   results: el('results'),
   statusBar: el('statusBar'),
   template: el('offerTemplate'),
@@ -82,23 +83,167 @@ function init(loaded) {
   applySignInState(state.session);
 }
 
-/* ---------- sign-in gate ---------- */
+/* ---------- sign-in ---------- */
 
-/** No session, no search: a guest sees a different campaign and different prices. */
-function applySignInState(session) {
-  const signedIn = Boolean(session?.snappLoggedIn);
+const PLATFORMS = [
+  { id: 'snapp', name: 'اسنپ‌مارکت', required: true },
+  { id: 'jet', name: 'دیجی‌کالا جت', required: false },
+];
+
+/** No Snapp session, no search: a guest sees a different campaign and different prices. */
+function applySignInState(status) {
+  const signedIn = Boolean(status?.snapp?.linked);
   ui.signinGate.hidden = signedIn;
   ui.searchButton.disabled = !signedIn || busy;
   ui.queryInput.disabled = !signedIn;
-  if (!signedIn && session?.expired) {
-    ui.signinGate.querySelector('strong').textContent = 'نشست اسنپ‌مارکت منقضی شده';
+  if (!signedIn) renderAccounts(status);
+}
+
+function renderAccounts(status) {
+  ui.accounts.replaceChildren();
+  for (const platform of PLATFORMS) {
+    ui.accounts.append(renderAccount(platform, status?.[platform.id]));
   }
 }
 
-ui.openSignin.addEventListener('click', async () => {
-  await send({ type: 'open-signin' }).catch(showError);
-  window.close();
-});
+function renderAccount(platform, state) {
+  const node = ui.accountTemplate.content.firstElementChild.cloneNode(true);
+  const form = node.querySelector('.account-form');
+  const phone = node.querySelector('.phone');
+  const code = node.querySelector('.code');
+  const codeField = node.querySelector('.code-field');
+  const phoneField = node.querySelector('.phone-field');
+  const submit = node.querySelector('.submit');
+  const resend = node.querySelector('.resend');
+  const back = node.querySelector('.back');
+  const note = node.querySelector('.account-note');
+  const action = node.querySelector('.account-action');
+
+  node.querySelector('.account-name').textContent = platform.name;
+
+  const linked = Boolean(state?.linked);
+  node.classList.toggle('linked', linked);
+  node.querySelector('.account-state').textContent = linked
+    ? `متصل${state.subject ? ` · ${state.subject}` : ''}`
+    : platform.required
+      ? 'وارد نشده — لازم است'
+      : 'وارد نشده — اختیاری';
+  action.textContent = linked ? 'خروج' : 'ورود';
+
+  let stage = 'phone';
+  let cooldown = 0;
+  let timer = null;
+
+  const setNote = (text, isError = false) => {
+    note.textContent = text || '';
+    note.classList.toggle('error', Boolean(isError));
+  };
+
+  const tick = () => {
+    if (cooldown <= 0) {
+      clearInterval(timer);
+      timer = null;
+      resend.disabled = false;
+      resend.textContent = 'ارسال دوباره';
+      return;
+    }
+    cooldown -= 1;
+    resend.textContent = `ارسال دوباره (${cooldown})`;
+  };
+
+  const startCooldown = (seconds) => {
+    cooldown = Math.max(seconds, 0);
+    if (!cooldown) return;
+    resend.disabled = true;
+    resend.textContent = `ارسال دوباره (${cooldown})`;
+    clearInterval(timer);
+    timer = setInterval(tick, 1000);
+  };
+
+  const showCodeStage = (message, wait) => {
+    stage = 'code';
+    phoneField.hidden = true;
+    codeField.hidden = false;
+    resend.hidden = false;
+    back.hidden = false;
+    submit.textContent = 'تأیید و ورود';
+    code.value = '';
+    code.focus();
+    setNote(message);
+    startCooldown(wait);
+  };
+
+  const showPhoneStage = () => {
+    stage = 'phone';
+    phoneField.hidden = false;
+    codeField.hidden = true;
+    resend.hidden = true;
+    back.hidden = true;
+    submit.textContent = 'ارسال کد';
+    setNote('');
+  };
+
+  action.addEventListener('click', async () => {
+    if (linked) {
+      await send({ type: 'auth-signout', platform: platform.id }).catch(showError);
+      return refreshAccounts();
+    }
+    form.hidden = !form.hidden;
+    if (!form.hidden) phone.focus();
+  });
+
+  const requestCode = async () => {
+    submit.disabled = true;
+    setNote('در حال ارسال کد…');
+    try {
+      const result = await send({
+        type: 'auth-request-code',
+        platform: platform.id,
+        phone: phone.value.trim(),
+      });
+      showCodeStage(result.message || 'کد پیامک شد.', result.resendAfter || 0);
+    } catch (error) {
+      setNote(error.message, true);
+    } finally {
+      submit.disabled = false;
+    }
+  };
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (stage === 'phone') return requestCode();
+
+    submit.disabled = true;
+    setNote('در حال بررسی کد…');
+    try {
+      await send({
+        type: 'auth-verify-code',
+        platform: platform.id,
+        phone: phone.value.trim(),
+        code: code.value.trim(),
+      });
+      clearInterval(timer);
+      await refreshAccounts();
+    } catch (error) {
+      setNote(error.message, true);
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  resend.addEventListener('click', requestCode);
+  back.addEventListener('click', showPhoneStage);
+
+  return node;
+}
+
+async function refreshAccounts() {
+  const status = await send({ type: 'auth-status' }).catch(() => null);
+  if (status) {
+    state = { ...state, session: status };
+    applySignInState(status);
+  }
+}
 
 /* ---------- location ---------- */
 
@@ -283,10 +428,7 @@ async function runHunt() {
     renderResults(result, { cached: false });
   } catch (error) {
     showError(error);
-    if (error?.notSignedIn) {
-      state = { ...state, session: { snappLoggedIn: false } };
-      applySignInState(state.session);
-    }
+    if (error?.notSignedIn) await refreshAccounts();
   } finally {
     busy = false;
     ui.progress.hidden = true;
