@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>حریم خصوصی — شکارچی تخفیف</title>
+    <meta
+      name="description"
+      content="شکارچی تخفیف چه چیزی ذخیره می‌کند، چه چیزی می‌فرستد و به کجا. بدون آنالیتیکس، بدون سرور، بدون شخص ثالث."
+    />
+    <link rel="icon" href="../assets/icon-128.png" />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <img src="../assets/icon-128.png" alt="" width="28" height="28" />
+        <span class="brand"
+          ><a href="index.html" style="color: inherit; text-decoration: none">شکارچی تخفیف</a></span
+        >
+        <nav>
+          <a href="index.html">خانه</a>
+          <a href="https://github.com/amiranmanesh/discount-hunter-extension">گیت‌هاب</a>
+          <span class="lang">
+            <a href="../privacy.html" hreflang="en">EN</a>
+            <a href="privacy.html" aria-current="true" hreflang="fa">فا</a>
+          </span>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="wrap hero" style="text-align: start; padding-bottom: 10px">
+        <h1 style="font-size: 34px">حریم خصوصی</h1>
+        <p class="lead" style="margin-inline: 0">
+          افزونه فقط با اسنپ‌مارکت و دیجی‌کالا جت حرف می‌زند و با هیچ جای دیگر. هیچ سروری از ما در
+          مسیر نیست، هیچ آنالیتیکسی، هیچ اسکریپت شخص ثالثی.
+        </p>
+      </div>
+
+      <section>
+        <div class="wrap">
+          <h2>چه چیزی و کجا ذخیره می‌شود</h2>
+          <p>
+            همه‌اش در <code>chrome.storage.local</code> روی دستگاه خودت. با حذف افزونه پاک می‌شود.
+          </p>
+          <table class="rank">
+            <tbody>
+              <tr>
+                <td></td>
+                <td>موقعیت تحویل و برچسبش</td>
+                <td>هر قیمت و هزینهٔ ارسالی به مکان تو وابسته است</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td>فیلترها و ترتیب</td>
+                <td>تا پنل همان‌طور باز شود که رهایش کردی</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td>آخرین جستجو و نتیجه‌اش</td>
+                <td>تا باز کردن دوبارهٔ پنل، یک جستجوی ۴۵ درخواستی را تکرار نکند</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td>جستجوهای اخیر</td>
+                <td>تاریخچهٔ نوار جستجو، حداکثر هشت مورد</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td>توکن نشست اسنپ‌مارکت</td>
+                <td>به <code>svc.snapp.market</code> فرستاده می‌شود تا قیمت‌ها حساب خودت باشد</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td>توکن مهمان و شناسهٔ دستگاه</td>
+                <td>وقتی لاگین نیستی</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td>آدرس‌های ذخیره‌شدهٔ اسنپ‌مارکت</td>
+                <td>تا به‌جای تایپ مختصات، انتخابشان کنی</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <h2>چه چیزی و به کجا فرستاده می‌شود</h2>
+          <table class="rank">
+            <tbody>
+              <tr>
+                <td></td>
+                <td><code>svc.snapp.market</code></td>
+                <td>مختصات، عبارت جستجو و توکن تو</td>
+              </tr>
+              <tr>
+                <td></td>
+                <td><code>api.digikalajet.ir</code></td>
+                <td>مختصات و عبارت جستجو. بدون توکن — جستجوی جت نیازی ندارد</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="margin-top: 20px">
+            این‌ها همان درخواست‌هایی است که خود آن دو وب‌سایت وقتی از آن‌ها استفاده می‌کنی از
+            مرورگرت می‌فرستند. جای دیگری چیزی فرستاده نمی‌شود.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <h2>توکن نشست</h2>
+          <p>
+            اگر <code>snapp.market</code> را باز و لاگین‌شده داشته باشی، یک content script توکنی را
+            که خود سایت در <code>localStorage</code> خودش نگه داشته می‌خواند و به افزونه می‌دهد.
+            همین است که هزینهٔ ارسال پرو و قیمت‌های شخصی‌سازی‌شده را نشان می‌دهد. توکن فقط به
+            <code>svc.snapp.market</code> می‌رود و هیچ‌جا لاگ نمی‌شود.
+          </p>
+          <p>
+            بدون تب لاگین‌شده، افزونه توکن مهمان خودش را با همان grant عمومی‌ای که سایت استفاده
+            می‌کند می‌سازد؛ توکنی که به یک شناسهٔ تصادفی ساختهٔ خودش وصل است، نه به هیچ حسابی.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <h2>دسترسی‌ها</h2>
+          <p>
+            <code>storage</code> برای تنظیمات، <code>tabs</code> برای باز کردن فروشگاهی که انتخاب
+            می‌کنی، و دسترسی به چهار دامنهٔ اسنپ‌مارکت و دیجی‌کالا جت — که همان چیزی است که به دو
+            content script اجازه می‌دهد نشست و موقعیت را از صفحاتی که خودت باز کرده‌ای بخوانند.
+            همین.
+          </p>
+          <p class="note">
+            متن کامل، شامل ابزار توسعه که ترافیک را به‌صورت محلی ضبط می‌کند، در
+            <a
+              href="https://github.com/amiranmanesh/discount-hunter-extension/blob/main/docs/PRIVACY.md"
+              >docs/PRIVACY.md</a
+            >
+            است.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <span>مجوز MIT · بدون وابستگی به اسنپ یا دیجی‌کالا</span>
+        <nav>
+          <a href="index.html">خانه</a>
+          <a href="https://github.com/amiranmanesh/discount-hunter-extension">گیت‌هاب</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

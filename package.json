@@ -1,0 +1,38 @@
+{
+  "name": "discount-hunter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Find the deepest Snapp Market orange discount for a product across every store that delivers to you.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "clean": "rm -rf dist release",
+    "icons": "node scripts/gen-icons.mjs",
+    "manifest": "node scripts/manifest.mjs --write",
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --watch",
+    "package": "node scripts/build.mjs --zip",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "browser": "node scripts/browser.mjs",
+    "browser:recon": "node scripts/recon.mjs",
+    "e2e": "node scripts/e2e.mjs",
+    "shot": "node scripts/shot.mjs",
+    "verify": "npm run format:check && npm run lint && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0",
+    "playwright": "^1.62.1",
+    "prettier": "^3.4.2",
+    "vitest": "^4.1.11"
+  }
+}

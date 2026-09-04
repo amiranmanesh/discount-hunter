@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Both are generated from committed source with no native dependencies, so
+      # a diff here means someone edited the output instead of the generator.
+      - name: Verify the manifest is in sync
+        run: |
+          npm run manifest
+          git diff --exit-code -- extension/manifest.json
+
+      - name: Verify the icons are reproducible
+        run: |
+          npm run icons
+          git diff --exit-code -- public/icons extension/icons
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unpacked-extension
+          path: dist/chrome
+          retention-days: 14

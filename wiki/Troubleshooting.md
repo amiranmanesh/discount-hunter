@@ -1,0 +1,63 @@
+# Troubleshooting
+
+## The search found nothing
+
+**Most likely: the product is not in today's campaign.** `تخفیف نارنجی` is a
+rotating, time-limited line-up, not the whole catalogue. Turn off
+**فقط تخفیف کمپینی** and search again — you will get ordinary store prices across
+every nearby vendor instead.
+
+Then check, in order:
+
+1. **Is the delivery point right?** The chip at the top of the popup shows it.
+   A point outside any store's range returns zero vendors.
+2. **Is the query too specific?** `پفک نمکی مینو ۱۷۰ گرمی` needs every word to
+   appear. Try `پفک مینو`.
+3. **Is `حداقل تخفیف` set high?** At 70% almost nothing qualifies most days.
+
+## Results look unrelated to what I searched
+
+The popup will say `نتیجه‌ی دقیق پیدا نشد؛ نزدیک‌ترین موارد نمایش داده شده` when
+no title contained every word you typed. Those results only share the first word
+of your query. Shorten the query or search by product code instead.
+
+If the results share _no_ word with the query, that is a bug — please
+[open an issue](https://github.com/amiranmanesh/discount-hunter-extension/issues/new/choose)
+with the query and a couple of the titles you got.
+
+## Prices or delivery fees do not match the app
+
+Sign in to `snapp.market` in another tab and search again. The status line should
+end with `حساب اسنپ‌مارکت متصل`.
+
+Pro delivery fees and personalised campaign prices only exist for a signed-in
+account. Some campaign items are also segmented — `segment: new_user` offers
+appear in the API but may not apply to your account. Prices change during the day,
+too; the campaign period end is part of every response.
+
+## The popup says the location is not set
+
+Either open `snapp.market` signed in and reopen the popup, or click the chip and
+enter coordinates by hand. Nothing runs without a delivery point.
+
+## An error banner mentions an endpoint
+
+Something changed shape on the platform's side, or your token expired.
+
+- Reload `snapp.market` in its tab and search again — that refreshes the token.
+- If it persists, capture the traffic (`npm run browser:recon`) and
+  [open an "endpoint changed" issue](https://github.com/amiranmanesh/discount-hunter-extension/issues/new/choose).
+  **Strip the `authorization` header first** — it is your account.
+
+## My changes to the code do nothing
+
+Chrome caches extension resources per profile. Press reload on the extension card
+in `chrome://extensions`. For the driven-browser scripts this is handled for you:
+each one deletes its profile before launching, for exactly this reason.
+
+## A search takes several seconds
+
+Expected. One request lists the nearby stores, then one request per store reads
+its full campaign shelf — about 45 in central Tehran, six at a time. The
+alternative is the ten-item preview the listing endpoint returns, which misses
+most of the shelf.

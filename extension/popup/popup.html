@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>شکارچی تخفیف</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="../icons/icon-32.png" alt="" width="26" height="26" />
+        <div>
+          <strong>شکارچی تخفیف</strong>
+          <span class="brand-sub">تخفیف نارنجی و شگفت‌انگیز</span>
+        </div>
+      </div>
+      <button id="locationChip" class="chip" type="button" title="تغییر موقعیت">
+        <span class="pin">◎</span><span id="locationLabel">موقعیت تنظیم نشده</span>
+      </button>
+    </header>
+
+    <section id="locationPanel" class="panel" hidden>
+      <h2>موقعیت تحویل</h2>
+      <div id="addressList" class="address-list"></div>
+      <div class="manual">
+        <label
+          >عرض جغرافیایی<input id="latInput" type="text" inputmode="decimal" placeholder="35.7223"
+        /></label>
+        <label
+          >طول جغرافیایی<input id="lngInput" type="text" inputmode="decimal" placeholder="51.4781"
+        /></label>
+      </div>
+      <div class="panel-actions">
+        <button id="saveLocation" class="primary" type="button">ذخیره موقعیت</button>
+        <button id="closeLocation" class="ghost" type="button">بستن</button>
+      </div>
+      <p class="hint">
+        اگر در تبی وارد <b>snapp.market</b> شده باشی، آدرس‌های ذخیره‌شده‌ات خودکار اینجا می‌آید.
+      </p>
+    </section>
+
+    <form id="searchForm" class="search" autocomplete="off">
+      <input id="queryInput" type="search" placeholder="نام کالا یا کد کالا… مثلاً پفک مینو" />
+      <button class="primary" type="submit" id="searchButton">جستجو</button>
+      <ul id="suggestions" class="suggestions" hidden></ul>
+    </form>
+
+    <section class="filters">
+      <label class="filter">
+        <span>ترتیب</span>
+        <select id="sortMode"></select>
+      </label>
+      <label class="toggle"
+        ><input id="onlyOrange" type="checkbox" /><span>فقط تخفیف کمپینی</span></label
+      >
+      <label class="toggle"
+        ><input id="onlyOpen" type="checkbox" /><span>فقط فروشگاه باز</span></label
+      >
+      <label class="filter narrow">
+        <span>حداقل تخفیف</span>
+        <select id="minDiscount">
+          <option value="0">همه</option>
+          <option value="20">۲۰٪+</option>
+          <option value="30">۳۰٪+</option>
+          <option value="50">۵۰٪+</option>
+          <option value="70">۷۰٪+</option>
+        </select>
+      </label>
+      <label class="toggle"><input id="srcSnapp" type="checkbox" /><span>اسنپ‌مارکت</span></label>
+      <label class="toggle"><input id="srcJet" type="checkbox" /><span>دیجی‌کالا جت</span></label>
+    </section>
+
+    <div id="progress" class="progress" hidden>
+      <div id="progressBar"></div>
+      <span id="progressText"></span>
+    </div>
+    <div id="banner" class="banner" hidden></div>
+
+    <main id="results" class="results"></main>
+
+    <footer id="statusBar" class="statusbar"></footer>
+
+    <template id="offerTemplate">
+      <article class="offer">
+        <img class="offer-image" alt="" loading="lazy" />
+        <div class="offer-body">
+          <div class="offer-head">
+            <span class="badge platform"></span>
+            <span class="badge campaign"></span>
+            <span class="badge discount"></span>
+          </div>
+          <h3 class="offer-title"></h3>
+          <div class="offer-price">
+            <span class="final"></span>
+            <s class="original"></s>
+          </div>
+          <div class="offer-vendor">
+            <span class="vendor-name"></span>
+            <span class="vendor-meta"></span>
+          </div>
+          <div class="offer-foot">
+            <span class="total-cost"></span>
+            <button class="open-store" type="button">باز کردن فروشگاه ↗</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
