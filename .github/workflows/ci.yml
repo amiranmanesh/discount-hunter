@@ -1,8 +1,8 @@
 name: CI
 
+# Pushes to main are verified by the release workflow, which then publishes; this
+# one covers everything before a merge.
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -54,3 +54,38 @@ jobs:
           name: web-build
           path: dist/
           retention-days: 14
+
+  image:
+    name: Build the Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Built but not pushed: a pull request should prove the image still builds
+      # without publishing anything.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: discount-hunter:pr
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Boot it and check /healthz
+        run: |
+          docker run -d --name check -p 4173:4173 discount-hunter:pr
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:4173/healthz > /dev/null; then
+              echo "healthy after ${i}s"
+              curl -fsS http://localhost:4173/ | head -c 120
+              docker rm -f check
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "the container never became healthy" >&2
+          docker logs check
+          exit 1

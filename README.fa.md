@@ -43,6 +43,16 @@
 
 ## اجرا
 
+**با داکر، یک دستور:**
+
+```bash
+docker run -p 4173:4173 ghcr.io/amiranmanesh/discount-hunter:latest
+```
+
+یا `docker compose up -d` با [`compose.yaml`](compose.yaml) همین ریپو.
+
+**از سورس:**
+
 ```bash
 git clone https://github.com/amiranmanesh/discount-hunter.git
 cd discount-hunter

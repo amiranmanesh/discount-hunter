@@ -50,6 +50,16 @@ Three rules, each of which exists because the app once got it wrong:
 
 ## Run it
 
+**Docker, one command:**
+
+```bash
+docker run -p 4173:4173 ghcr.io/amiranmanesh/discount-hunter:latest
+```
+
+or `docker compose up -d` with the [`compose.yaml`](compose.yaml) in this repo.
+
+**From source:**
+
 ```bash
 git clone https://github.com/amiranmanesh/discount-hunter.git
 cd discount-hunter

@@ -85,6 +85,16 @@ function serveFile(res, file, { immutable = false } = {}) {
 }
 
 const server = http.createServer(async (req, res) => {
+  // Container health check: no upstream calls, so it stays honest about this
+  // process rather than about Snapp Market being up.
+  if (req.url === '/healthz') {
+    res.writeHead(200, {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+    });
+    return res.end(JSON.stringify({ status: 'ok', build: existsSync(DIST) }));
+  }
+
   const prefix = Object.keys(PROXY_TARGETS).find((candidate) => req.url.startsWith(candidate));
   if (prefix) return proxy(req, res, prefix, PROXY_TARGETS[prefix]);
 

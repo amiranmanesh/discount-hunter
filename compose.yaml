@@ -1,0 +1,27 @@
+# Self-hosting, one command:  docker compose up -d
+#
+# Nothing is persisted because nothing is stored: sessions live in the browser,
+# and the proxy keeps no state.
+services:
+  app:
+    image: ghcr.io/amiranmanesh/discount-hunter:latest
+    # Swap the line above for this to build from the working copy:
+    # build: .
+    container_name: discount-hunter
+    restart: unless-stopped
+    ports:
+      - '4173:4173'
+    environment:
+      PORT: 4173
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4173/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

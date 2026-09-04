@@ -1,0 +1,17 @@
+node_modules
+dist
+dev-dist
+coverage
+.git
+.github
+.preview
+.claude
+.agents
+tests
+docs
+*.md
+.editorconfig
+.prettier*
+eslint.config.js
+vitest.config.ts
+scripts/preview.mjs

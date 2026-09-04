@@ -41,6 +41,20 @@ behind the same rate-limit budget.
 
 ## [Unreleased]
 
+### Added
+
+- **A Docker image and a release pipeline.** `ghcr.io/amiranmanesh/discount-hunter`
+  is published for amd64 and arm64 on every push to `main`, tagged `latest`, the
+  package.json version and the commit sha. A version that has never been released
+  is also tagged, bundled and turned into a GitHub release — so shipping is a
+  version bump, nothing more.
+- `GET /healthz`, answered without touching either upstream, so a container
+  health check reports on this process rather than on Snapp Market.
+- `compose.yaml` and [`docs/DEPLOY.md`](docs/DEPLOY.md) for self-hosting.
+
+  The runtime image carries no `node_modules`: the server uses only Node
+  built-ins, so it is the bundle, the server and a Node base image.
+
 ### Changed
 
 - **The content scripts no longer read tokens.** They copy the delivery point and
