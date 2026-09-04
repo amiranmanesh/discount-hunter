@@ -5,7 +5,7 @@
 NPM ?= npm
 
 .DEFAULT_GOAL := help
-.PHONY: help install icons manifest build dev package clean lint format test verify browser recon e2e shot release-check
+.PHONY: help install icons manifest build dev package clean lint format test verify browser recon e2e shot verify-offer release-check
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -56,6 +56,9 @@ e2e: ## Drive the popup end to end against the live API
 
 shot: ## Refresh docs/popup.png
 	$(NPM) run shot
+
+verify-offer: ## Compare one query's winning offer against the store's own shelf
+	$(NPM) run verify-offer
 
 release-check: verify package ## Everything the release workflow does, locally
 	@echo "release/ is ready"

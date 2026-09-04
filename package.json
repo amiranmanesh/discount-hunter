@@ -1,6 +1,6 @@
 {
   "name": "discount-hunter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "Find the deepest Snapp Market orange discount for a product across every store that delivers to you.",
@@ -25,6 +25,7 @@
     "browser:recon": "node scripts/recon.mjs",
     "e2e": "node scripts/e2e.mjs",
     "shot": "node scripts/shot.mjs",
+    "verify-offer": "node scripts/verify-offer.mjs",
     "verify": "npm run format:check && npm run lint && npm test && npm run build"
   },
   "devDependencies": {
