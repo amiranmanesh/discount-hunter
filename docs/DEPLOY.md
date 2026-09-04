@@ -32,10 +32,11 @@ built-ins — so it is the bundle, the server and a Node base image.
 
 ### Configuration
 
-| Variable | Default   | What it does      |
-| -------- | --------- | ----------------- |
-| `PORT`   | `4173`    | Port to listen on |
-| `HOST`   | `0.0.0.0` | Interface to bind |
+| Variable          | Default   | What it does                                                                                                                                                                           |
+| ----------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`            | `4173`    | Port to listen on                                                                                                                                                                      |
+| `HOST`            | `0.0.0.0` | Interface to bind                                                                                                                                                                      |
+| `ALLOWED_ORIGINS` | empty     | Origins allowed to call `/api/*` from another host, comma-separated. Only needed when this process is the proxy for an app served elsewhere — see [HOSTING.md](HOSTING.md). Never `*`. |
 
 There is nothing else to configure and nothing to persist: sessions live in the
 browser, and the proxy keeps no state. `GET /healthz` answers without touching
