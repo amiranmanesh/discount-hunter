@@ -1,0 +1,14 @@
+name = "discount-hunter-api"
+main = "index.mjs"
+compatibility_date = "2026-01-01"
+
+# Leave this empty when the Worker answers on the same domain as the app — route
+# `yourdomain/api/*` here and CORS never comes up. Set it only when the Worker
+# lives on its own origin, and then list exactly the app's origin.
+[vars]
+ALLOWED_ORIGINS = ""
+
+# Same-origin routing. Uncomment and set your own zone:
+# [[routes]]
+# pattern = "yourdomain.ir/api/*"
+# zone_name = "yourdomain.ir"

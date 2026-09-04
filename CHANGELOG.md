@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **The app can be deployed to a static host.** `VITE_API_BASE` points it at a
+  proxy on another origin and `VITE_BASE` at the sub-path it is served from, so
+  GitHub Pages can host the built app rather than only a landing page.
+  `worker/` is the same pass-through as `server/index.mjs`, as a Cloudflare
+  Worker: route `yourdomain/api/*` to it and there is no CORS at all, or give it
+  its own origin and list the app's in `ALLOWED_ORIGINS`.
+  [`docs/HOSTING.md`](docs/HOSTING.md) has the measurements and the trade-offs.
+- The Pages workflow now builds and deploys the app itself. The project page
+  keeps its URL under `/about/`.
+
+### Fixed
+
+- A request to an API base with no proxy behind it used to fail on the host's
+  own 404 page with an unreadable parse error. It now says which base did not
+  answer and points at the hosting guide.
+
 ## [2.1.0] — 2026-09-04
 
 ### Added

@@ -78,6 +78,13 @@ installs as a standalone app.
 
 For development, `npm run dev` gives you the same thing on :5173 with hot reload.
 
+**On a static host?** The app can be deployed to GitHub Pages, but not on its
+own: none of the three APIs allows a cross-origin browser request, so a static
+build needs a proxy it is allowed to reach. `worker/` is that proxy as a
+Cloudflare Worker — route `yourdomain/api/*` to it and no CORS is involved at
+all. [`docs/HOSTING.md`](docs/HOSTING.md) has the measurements and the three
+topologies.
+
 ### Why it needs a server
 
 Neither platform allows a cross-origin browser request — Snapp Market sends

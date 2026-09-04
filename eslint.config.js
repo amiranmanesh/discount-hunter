@@ -43,6 +43,11 @@ export default tseslint.config(
     rules: { 'no-console': 'off' },
   },
   {
+    // The Worker runs on the edge runtime: web globals, no Node.
+    files: ['worker/**/*.mjs'],
+    languageOptions: { globals: { ...globals.worker, ...globals.browser } },
+  },
+  {
     files: ['tests/**/*.{ts,tsx}'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },

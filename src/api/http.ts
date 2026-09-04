@@ -1,15 +1,25 @@
-// Every request goes through this app's own origin.
+// Every request goes through a proxy this project controls.
 //
-// Neither platform sends `Access-Control-Allow-Origin` for anyone but its own
-// website — Snapp Market echoes only `https://snapp.market`, Digikala Jet sends
-// nothing at all — so a browser will not let a page on another origin read the
-// response. The app is therefore served together with a small pass-through
-// proxy at `/api/snapp` and `/api/jet` (see `server/index.mjs`, and the dev
-// proxy in `vite.config.ts`), which makes every call same-origin.
+// None of the three platforms sends `Access-Control-Allow-Origin` on a real
+// response for any origin but its own website — measured, not assumed: Snapp
+// Market echoes only `https://snapp.market`, Digikala Jet sends nothing, and
+// Okala answers the preflight permissively but omits the header from the
+// response itself, which a browser treats as a refusal all the same. So no
+// amount of client-side code can call them from a page on another origin.
+//
+// `VITE_API_BASE` says where that proxy lives:
+//
+//   unset            `/api` — same origin, which is what `npm start` and the
+//                    Docker image serve, and what the dev server proxies.
+//   an absolute URL  a proxy on another origin, for a static host such as
+//                    GitHub Pages. It has to allow this app's origin back.
+//
+// See docs/HOSTING.md.
+const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/$/, '');
 
-export const SNAPP_BASE = '/api/snapp';
-export const JET_BASE = '/api/jet';
-export const OKALA_BASE = '/api/okala';
+export const SNAPP_BASE = `${API_BASE}/snapp`;
+export const JET_BASE = `${API_BASE}/jet`;
+export const OKALA_BASE = `${API_BASE}/okala`;
 
 export class ApiError extends Error {
   readonly status: number;
@@ -97,10 +107,19 @@ export async function request<T>(
     });
   }
 
-  const json = (await response.json().catch(() => null)) as T & {
-    message?: string;
-    status?: unknown;
-  };
+  const json = (await response.json().catch(() => null)) as
+    (T & { message?: string; status?: unknown }) | null;
+
+  // A static host with no proxy behind `/api` answers with its own 404 page, and
+  // the parse above fails on the HTML with something unreadable. Say what
+  // actually went wrong instead of passing that on.
+  if (json === null) {
+    throw new ApiError(
+      `پروکسی در ${API_BASE} پاسخ درستی نداد. اگر برنامه روی میزبان استاتیک بالاست، ` +
+        'باید VITE_API_BASE به یک پروکسی اشاره کند — docs/HOSTING.md',
+      { status: response.status },
+    );
+  }
 
   if (!response.ok) {
     throw new ApiError(json?.message || `${path} → ${response.status}`, {

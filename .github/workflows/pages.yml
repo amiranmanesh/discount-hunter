@@ -1,13 +1,22 @@
 name: Pages
 
-# The project page, not the app. The app itself cannot live on Pages: neither
-# shopping API allows a cross-origin browser request, so it has to be served next
-# to its proxy. See docs/ARCHITECTURE.md.
+# Builds the app itself and deploys it to GitHub Pages.
+#
+# Pages is a static host, and none of the three shopping APIs allows a
+# cross-origin browser request, so the deployed app needs a proxy it is allowed
+# to talk to. `PAGES_API_BASE` says where that is — a Cloudflare Worker on the
+# same domain, or one on its own origin. Without it the build still deploys, and
+# the app says plainly that it has no API to reach. See docs/HOSTING.md.
 on:
   push:
     branches: [main]
     paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vite.config.ts'
       - 'site/**'
+      - 'package.json'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -22,16 +31,42 @@ concurrency:
 
 jobs:
   deploy:
-    name: Build and deploy the project site
+    name: Build and deploy the app
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
       - uses: actions/configure-pages@v6
+        id: pages
+
+      - name: Build
+        env:
+          # A project site is served from `/<repo>/`; a custom domain from the
+          # root. `configure-pages` works out which, and the base path has to
+          # match or the bundle and the service worker 404.
+          VITE_BASE: ${{ steps.pages.outputs.base_path && format('{0}/', steps.pages.outputs.base_path) || '/' }}
+          VITE_API_BASE: ${{ vars.PAGES_API_BASE }}
+        run: |
+          npm run build
+          # The project page keeps its own URL under /about/.
+          mkdir -p dist/about
+          cp -r site/* dist/about/
+          # Pages serves 404.html for unknown paths; the app is a single page.
+          cp dist/index.html dist/404.html
+
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: site
+          path: dist
+
       - id: deployment
         uses: actions/deploy-pages@v5

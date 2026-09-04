@@ -22,7 +22,13 @@ const proxy = Object.fromEntries(
   ]),
 );
 
+// A project Pages site is served from `/<repo>/`, so the bundle, the service
+// worker and the router all need the same prefix. A custom domain serves from
+// the root and leaves this unset.
+const base = process.env.VITE_BASE ?? '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -35,8 +41,8 @@ export default defineConfig({
           'بیشترین تخفیف اسنپ‌مارکت و دیجی‌کالا جت در فروشگاه‌های اطرافت، مرتب‌شده بر اساس درصد تخفیف.',
         lang: 'fa',
         dir: 'rtl',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#fbfbfd',
