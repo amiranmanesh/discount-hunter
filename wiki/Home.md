@@ -1,8 +1,8 @@
 # Discount Hunter · شکارچی تخفیف
 
-An installable web app that reads the **تخفیف نارنجی** campaign on Snapp Market
-and the **شگفت‌انگیز** line-up on Digikala Jet — with your own account — and sorts
-everything by how deep the discount actually is.
+An installable web app that reads the **تخفیف نارنجی** campaign on Snapp Market,
+the **شگفت‌انگیز** line-up on Digikala Jet and Okala's offer carousels — with your
+own accounts — and sorts everything by how deep the discount actually is.
 
 Persian documentation: [README.fa.md](https://github.com/amiranmanesh/discount-hunter/blob/main/README.fa.md)
 · [Website](https://amiranmanesh.github.io/discount-hunter/)
@@ -21,7 +21,7 @@ Persian documentation: [README.fa.md](https://github.com/amiranmanesh/discount-h
 ## Two ways to use it
 
 **تخفیف‌ها** is an endless feed of every campaign offer in range, deepest discount
-first, mixed across both platforms. Nothing to type — scroll until something
+first, mixed across all three platforms. Nothing to type — scroll until something
 catches your eye.
 
 **جستجو** takes one product and prices it across every store that delivers to

@@ -41,6 +41,7 @@ src/
   api/http.ts        one fetch wrapper: query building, tokens, typed errors
   api/snapp.ts       Snapp Market — auth, campaign, catalogue, verification
   api/jet.ts         Digikala Jet — auth, search, شگفت‌انگیز listing
+  api/okala.ts       Okala — auth, nearby stores, offer carousels, search
   core/deals.ts      the discount feed
   core/hunt.ts       search across both platforms
   core/rank.ts       ordering rules and de-duplication
@@ -74,9 +75,13 @@ does not list is dropped; one that was never checked is dropped too. Measured
 case: the campaign advertised a Coca-Cola Zero at 39,072 Toman in a store whose
 own shelf listed it at 112,332.
 
-**There is no guest mode.** A guest session sees a different campaign with
-different eligibility, so an answer built from it answers a question the user did
-not ask. Without a Snapp Market session the search refuses to run.
+**There is no guest mode — for the platform that has one.** A guest Snapp Market
+session sees a different campaign with different eligibility, so an answer built
+from it answers a question the user did not ask; Snapp is skipped rather than
+searched anonymously, and the interface says so. Okala's search needs its own
+token and is skipped the same way. Digikala Jet's search takes no token and
+answers either way, so a search still returns something when only Jet is
+available.
 
 The feed is looser by necessity — verifying every row of an endless list would be
 one request per card — so it shows campaign rows as the campaign reports them,
@@ -94,6 +99,10 @@ with the first-order shelf still excluded. Search is the place that confirms.
   on the first page — around nineteen of the deepest discounts in one call — then
   `/v2/products/galaxy/`, five per page because the endpoint ignores any attempt
   to ask for more.
+- **Okala**: its home-page offer carousels, sixteen of them with up to twelve
+  products each, in one unpaginated call — around 150 discounted products. It
+  seeds the first page and does not extend the feed. The store ids that call
+  needs come from `/api/opex/v4/stores/nearby`, which also needs no token.
 
 Pages accumulate and the whole list is re-sorted on every render, so it stays in
 descending order as it grows rather than resetting per page.

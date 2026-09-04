@@ -1,7 +1,7 @@
 <div align="center">
   <img src="public/icons/icon-192.png" width="84" height="84" alt="" />
   <h1>Discount Hunter · شکارچی تخفیف</h1>
-  <p><strong>Every Snapp Market and Digikala Jet discount near you, deepest first — as an installable web app.</strong></p>
+  <p><strong>Every Snapp Market, Digikala Jet and Okala discount near you, deepest first — as an installable web app.</strong></p>
   <p><strong>English</strong> · <a href="README.fa.md">فارسی</a></p>
   <p>
     <a href="https://amiranmanesh.github.io/discount-hunter/">Website</a> ·
@@ -24,15 +24,15 @@
 
 ---
 
-Snapp Market's `تخفیف نارنجی` campaign and Digikala Jet's `شگفت‌انگیز` line-up run
-across dozens of stores at once, and the same product is discounted differently
-in each. This app reads both, from your own account, and sorts everything by how
-deep the discount actually is.
+Snapp Market's `تخفیف نارنجی` campaign, Digikala Jet's `شگفت‌انگیز` line-up and
+Okala's offer carousels all run across dozens of stores at once, and the same
+product is discounted differently in each. This app reads all three, from your
+own accounts, and sorts everything by how deep the discount actually is.
 
 Two ways to use it:
 
 - **تخفیف‌ها** — an endless feed of every campaign offer in range, deepest
-  discount first, mixed across both platforms. Nothing to type.
+  discount first, mixed across all three platforms. Nothing to type.
 - **جستجو** — one product, priced across every store that delivers to you, ranked
   by discount, then Snapp Market **Pro**, then delivery fee.
 
@@ -50,7 +50,8 @@ Three rules, each of which exists because the app once got it wrong:
   shown, with your token, through the request the store page itself makes. An
   offer the store does not list is dropped rather than displayed.
 - **There is no guest mode.** A guest sees a different campaign at different
-  prices, so the search refuses to run without your Snapp Market session.
+  prices, so Snapp Market is skipped rather than searched anonymously, and the
+  app says so. Okala's search needs its own token too; Digikala Jet's does not.
 
 ## Run it
 
@@ -90,9 +91,15 @@ The proxy keeps nothing, but it is on the path, so run your own:
 
 **حساب‌ها** → phone number → SMS code, one platform at a time.
 
-**Snapp Market is required.** **Digikala Jet is optional**: its search takes no
-token, and signing in only adds that account's saved addresses. The app holds its
-own refresh token, so a session renews itself rather than expiring in an hour.
+| Platform         | Sign-in                  | What it needs a token for         |
+| ---------------- | ------------------------ | --------------------------------- |
+| **Snapp Market** | required for its results | everything                        |
+| **Digikala Jet** | optional                 | only its saved addresses          |
+| **Okala**        | optional                 | search; its discount feed is open |
+
+The app holds Snapp Market's refresh token, so that session renews itself rather
+than expiring in an hour. Okala's token lasts ten hours and is not renewable —
+its own site signs in again, and so does this.
 
 Codes are rate-limited on purpose: two minutes between codes, five per fifteen
 minutes, five attempts per code, and a server `Retry-After` is honoured.

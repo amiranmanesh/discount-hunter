@@ -1,9 +1,9 @@
 {
   "name": "discount-hunter",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
-  "description": "Find the deepest Snapp Market and Digikala Jet discounts near you \u2014 an installable PWA.",
+  "description": "Find the deepest Snapp Market, Digikala Jet and Okala discounts near you \u2014 an installable PWA.",
   "license": "MIT",
   "engines": {
     "node": ">=22"

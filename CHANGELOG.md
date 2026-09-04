@@ -39,7 +39,32 @@ never read, search results are still confirmed against the store's own shelf
 before they are shown, there is still no guest mode, and the OTP flows still sit
 behind the same rate-limit budget.
 
-## [Unreleased]
+## [2.1.0] — 2026-09-04
+
+### Added
+
+- **Okala as a third platform.** Its offer carousels join the discount feed —
+  around 150 discounted products in one unpaginated call — and its catalogue
+  joins the search. Prices are quoted in Rial and converted to Toman at the
+  boundary, like Digikala Jet's.
+
+  Sign-in is phone and SMS code, through `OTPRegister` then
+  `/api/v1/accounts/tokens`. The access token is not a JWT, so its expiry comes
+  from `expires_in` rather than from the token; it lasts ten hours and Okala's
+  own site does not refresh it, so neither does this — the session store asks for
+  a new sign-in instead of retrying a dead token.
+
+  Its gateway wants a per-device id and a per-request correlation id on every
+  call and marks unauthenticated ones explicitly, so the proxy now forwards the
+  client's `x-*` headers.
+
+### Fixed
+
+- **A search no longer needs Snapp Market to run.** "No guest mode" is about
+  Snapp specifically — its campaign and eligibility differ per account — but the
+  rule had been applied to the whole search, so signing in to Okala or leaving
+  Jet enabled still produced nothing. Each platform is now skipped on its own
+  terms and the interface says which one is missing and why.
 
 ### Added
 

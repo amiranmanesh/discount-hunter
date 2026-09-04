@@ -64,9 +64,14 @@ to persist: sessions live in the browser and the proxy keeps no state.
 Open **حساب‌ها** and sign in with your phone number and the SMS code, one platform
 at a time.
 
-**Snapp Market is required** — a guest sees a different campaign at different
-prices, so the search refuses to run without it. **Digikala Jet is optional**: its
-search takes no token, and signing in only adds that account's saved addresses.
+| Platform         | Sign-in                | What the token is for             |
+| ---------------- | ---------------------- | --------------------------------- |
+| **Snapp Market** | needed for its results | everything                        |
+| **Digikala Jet** | optional               | only its saved addresses          |
+| **Okala**        | optional               | search; its discount feed is open |
+
+A platform whose token is missing is skipped, and the interface says so — a
+search still runs on whatever is signed in.
 
 ## Set your delivery point
 

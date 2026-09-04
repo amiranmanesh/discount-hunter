@@ -17,10 +17,11 @@ is no us — no analytics, no telemetry, no third-party script.
 
 ## What leaves your device, and where it goes
 
-| Destination          | What goes there                                                      |
-| -------------------- | -------------------------------------------------------------------- |
-| `svc.snapp.market`   | Your coordinates, the search term, your Snapp token                  |
-| `api.digikalajet.ir` | Your coordinates and the search term; the Jet token if you signed in |
+| Destination            | What goes there                                                       |
+| ---------------------- | --------------------------------------------------------------------- |
+| `svc.snapp.market`     | Your coordinates, the search term, your Snapp token                   |
+| `api.digikalajet.ir`   | Your coordinates and the search term; the Jet token if you signed in  |
+| `apigateway.okala.com` | Your coordinates, the search term, and the Okala token when searching |
 
 These are the same requests the two websites make from your browser when you use
 them normally.

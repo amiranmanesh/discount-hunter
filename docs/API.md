@@ -325,3 +325,167 @@ https://www.digikalajet.com/search/?q=<q>&shopId=<shopId>
   `/mobile/v2/product-variation/search` راستی‌آزمایی کرد.
 - توکن کاربر بسته به بیلد سایت، هم در `persist:siteState` و هم در کلید سادهٔ
   `JWT` دیده شده — و بخشی از عمر نشست، اسلایس redux خالی است.
+
+---
+
+## اوکالا — `https://apigateway.okala.com`
+
+از طریق پروکسی: `/api/okala/*`. همهٔ قیمت‌ها **ریال** است.
+
+### هدرهای مشترک
+
+گیت‌وی روی هر درخواست این دو را می‌خواهد، و درخواست بدون توکن را صریح علامت می‌زند:
+
+```
+x-user-unique-id: <uuid ثابت هر دستگاه>
+x-correlation-id: <uuid هر درخواست>
+x-skip-authorization: true        # فقط روی کال‌های بدون توکن
+```
+
+### ورود
+
+```http
+POST /api/voyager/C/CustomerAccount/OTPRegister
+Content-Type: application/json
+
+{"mobile":"09xxxxxxxxx","deviceTypeCode":10,"confirmTerms":true,
+ "notRobot":false,"otpType":0,"ValidationCodeCreateReason":5,
+ "OtpApp":0,"IsAppOnly":false}
+→ {"success":true,"message":null,"data":null}
+```
+
+```http
+POST /api/v1/accounts/tokens
+Content-Type: application/x-www-form-urlencoded
+
+mobile_number=09xxxxxxxxx&otp_code=<code>&grant_type=customer_grant_type
+&client_id=customer_client_id&client_secret=<از خود وب‌اپ>
+&client_name=customer_client_name&device_type_code=10&scope=offline_access
+```
+
+```jsonc
+{
+  "access_token": "…", // JWT نیست
+  "expires_in": 36000, // ۱۰ ساعت
+  "token_type": "Bearer",
+  "refresh_token": "…", // رشتهٔ مبهم
+  "UserInfo": { "Id": 899433, "MobilePhone": "09…" },
+}
+```
+
+> توکن JWT نیست، پس انقضا از `expires_in` گرفته می‌شود نه از خود توکن.
+> وب‌اپ اوکالا هیچ‌وقت refresh نمی‌زند و بعد از ۱۰ ساعت دوباره لاگین می‌کند؛
+> برنامه هم همین کار را می‌کند به‌جای اینکه یک grant حدسی بزند.
+
+### فروشگاه‌های نزدیک — بدون توکن
+
+```http
+GET /api/opex/v4/stores/nearby?latitude=<lat>&longitude=<lng>
+```
+
+```jsonc
+{
+  "data": {
+    "stores": [
+      {
+        "storeId": 53846,
+        "storeName": "وزرا",
+        "logo": "…",
+        "rate": 4.2,
+        "distance": 0.36,
+        "deliveryPrice": 0, // ریال
+        "onDemandEta": "01:00:00", // ساعت:دقیقه:ثانیه
+        "operationPrice": 105000,
+        "packagingPrice": 30000,
+      },
+    ],
+  },
+}
+```
+
+### فید تخفیف — بدون توکن
+
+همان چیزی که صفحهٔ اصلی سایت می‌گیرد: حدود ۱۶ کاروسل × تا ۱۲ کالا در **یک** درخواست.
+صفحه‌بندی ندارد، پس فقط صفحهٔ اول فید را پر می‌کند.
+
+```http
+GET /api/carousel/v4/offers?pageType=HomePage&lat=<lat>&lon=<lng>
+      &storeIds=53846&storeIds=8294&…        # تکرارشونده، از stores/nearby
+```
+
+```jsonc
+{
+  "carousels": [
+    {
+      "title": "تخفیف آخرهفته",
+      "products": [
+        {
+          "id": 681680,
+          "name": "بستنی چوبی وانیلی ویژه دومینو 60 گرمی بسته 3 عددی",
+          "price": 1500000, // ریال، قبل از تخفیف
+          "okPrice": 1275000, // ریال، چیزی که می‌پردازی
+          "discountPercent": 15,
+          "isShowDiscount": true,
+          "quantity": 22,
+          "hasQuantity": true,
+          "storeId": 2045,
+          "storeName": "پلاتینیوم",
+          "webLink": "/product/681680",
+        },
+      ],
+    },
+  ],
+}
+```
+
+### جستجو — **نیازمند توکن**
+
+```http
+GET /api/unicorn/v2/cumulative/search/nearby?q=<q>&lat=<lat>&lon=<lng>&v4Stores=true
+Authorization: Bearer <access_token>
+```
+
+نتیجه بر اساس فروشگاه گروه‌بندی شده — `data` یک شیء با کلیدهای `0..n` است، نه آرایه:
+
+```jsonc
+{
+  "data": {
+    "0": {
+      "store": {
+        "storeId": 54844,
+        "storeName": "علیشاهی",
+        "deliveryPrice": 0,
+        "rate": 4.2,
+        "distance": 2.04,
+        "onDemandEta": "01:00:00",
+      },
+      "products": [
+        {
+          "id": 190926,
+          "name": "پفک نمکی مینو 60 گرمی",
+          "price": 650000,
+          "okPrice": 609375,
+          "discountPercent": 6,
+          "isShowDiscount": true,
+          "quantity": 13,
+          "hasQuantity": true,
+        },
+      ],
+    },
+  },
+  "success": true,
+}
+```
+
+### لینک محصول
+
+```
+https://www.okala.com/product/<id>
+```
+
+### نکته‌هایی که موقع کشف به آن‌ها خوردیم
+
+- قیمت‌ها ریال است: `finalPrice = okPrice / 10`، `price` قیمت پیش از تخفیف.
+- `stores/nearby` و `carousel/v4/offers` توکن نمی‌خواهند؛ فقط `search` می‌خواهد.
+- `data` در جستجو شیء است نه آرایه؛ `Object.values` لازم است.
+- `access_token` امضای JWT ندارد، پس انقضا فقط از `expires_in` می‌آید.
