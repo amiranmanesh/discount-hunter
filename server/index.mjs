@@ -37,8 +37,14 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
-/** Headers worth passing upstream. Hop-by-hop and identifying ones are dropped. */
+/**
+ * Headers worth passing upstream. Hop-by-hop and identifying ones are dropped.
+ * Okala's gateway also expects its own `x-*` trio — a per-device id, a
+ * per-request correlation id, and the flag that marks a call as needing no
+ * token — so `x-` headers the client sets are forwarded as well.
+ */
 const FORWARDED_REQUEST_HEADERS = ['authorization', 'content-type', 'accept', 'accept-language'];
+const FORWARDED_HEADER_PREFIX = 'x-';
 
 async function proxy(req, res, prefix, target) {
   const upstreamUrl = `${target.origin}${req.url.slice(prefix.length)}`;
@@ -48,8 +54,12 @@ async function proxy(req, res, prefix, target) {
     origin: target.referer,
     referer: `${target.referer}/`,
   };
-  for (const name of FORWARDED_REQUEST_HEADERS) {
-    if (req.headers[name]) headers[name] = req.headers[name];
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (FORWARDED_REQUEST_HEADERS.includes(name) || name.startsWith(FORWARDED_HEADER_PREFIX)) {
+      // `x-forwarded-*` describes our own hop and means nothing upstream.
+      if (name.startsWith('x-forwarded-')) continue;
+      headers[name] = value;
+    }
   }
 
   let body;

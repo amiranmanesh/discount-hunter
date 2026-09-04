@@ -9,6 +9,7 @@
 
 export const SNAPP_BASE = '/api/snapp';
 export const JET_BASE = '/api/jet';
+export const OKALA_BASE = '/api/okala';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -43,6 +44,8 @@ export function retryAfterSeconds(response: Response): number | null {
 export interface RequestOptions {
   method?: 'GET' | 'POST';
   query?: Record<string, string | number | undefined>;
+  /** Extra headers the platform's gateway insists on. */
+  headers?: Record<string, string>;
   body?: unknown;
   form?: URLSearchParams;
   token?: string | null;
@@ -61,7 +64,10 @@ export async function request<T>(
     if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
   }
 
-  const headers: Record<string, string> = { accept: 'application/json, text/plain, */*' };
+  const headers: Record<string, string> = {
+    accept: 'application/json, text/plain, */*',
+    ...options.headers,
+  };
   if (options.token) {
     headers.authorization =
       options.tokenScheme === 'raw' ? options.token : `Bearer ${options.token}`;

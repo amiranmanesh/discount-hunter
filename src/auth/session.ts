@@ -43,13 +43,15 @@ export function makeSession(input: {
   refreshToken?: string | null;
   subject?: string | null;
   userId?: number | null;
+  /** For a token that is not a JWT, and so carries no expiry of its own. */
+  expiresAt?: number;
 }): Session {
   return {
     accessToken: input.accessToken,
     refreshToken: input.refreshToken ?? null,
     subject: input.subject ?? null,
     userId: input.userId ?? null,
-    expiresAt: expiryOf(input.accessToken),
+    expiresAt: input.expiresAt ?? expiryOf(input.accessToken),
     createdAt: Date.now(),
   };
 }

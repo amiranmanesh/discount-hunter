@@ -1,4 +1,4 @@
-export type PlatformId = 'snapp' | 'jet';
+export type PlatformId = 'snapp' | 'jet' | 'okala';
 
 export interface Vendor {
   id: string | number;
