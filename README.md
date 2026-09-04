@@ -40,16 +40,17 @@ endorsed by, or connected to Snapp or Digikala.
 
 ## What it does
 
-|                                     |                                                                                                                                                                                                                      |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reads the whole shelf**           | Lists every store that delivers to your address and is running the campaign — about 45 in central Tehran — then reads each one's **full** campaign catalogue, not the ten-item preview the listing endpoint returns. |
-| **Ranks the way you'd shop**        | Deepest discount (in 5% steps), then Snapp Market **Pro** stores, then cheapest delivery, then cheapest price. Two other orderings are one click away.                                                               |
-| **Uses your prices**                | With a signed-in `snapp.market` tab open it borrows that session, so Pro delivery fees and personalised campaign prices are the ones you see. Without one it mints an anonymous token and still works.               |
-| **Name or product code**            | Type a product name with suggestions from Snapp Market's own autocomplete, or paste a product id to compare one exact SKU across stores.                                                                             |
-| **Persian text that works**         | Arabic and Persian letter forms folded, digits normalised, and word-aware matching — searching `پفک مینو` does not return Domino ice cream.                                                                          |
-| **Digikala Jet as a second source** | Searches every Jet shop in range, converting Rial to Toman so the platforms compare. Off by default in 1.0.0.                                                                                                        |
-| **Opens the store**                 | Every result has a button that opens that store's page.                                                                                                                                                              |
-| **Nothing phones home**             | Requests go to Snapp Market and Digikala Jet and nowhere else. No analytics, no server of ours, no runtime dependencies. See [docs/PRIVACY.md](docs/PRIVACY.md).                                                     |
+|                                     |                                                                                                                                                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reads the whole shelf**           | Lists every store that delivers to your address and is running the campaign — about 45 in central Tehran — then reads each one's **full** campaign catalogue, not the ten-item preview the listing endpoint returns.                              |
+| **Ranks the way you'd shop**        | Deepest discount (in 5% steps), then Snapp Market **Pro** stores, then cheapest delivery, then cheapest price. Two other orderings are one click away.                                                                                            |
+| **Only prices you can pay**         | The campaign feed mixes in `new_user` offers — every 90-99% discount is one — that an established account cannot buy. Those are filtered out by default, and the leading results are re-priced against the store's own shelf before you see them. |
+| **Uses your prices**                | With a signed-in `snapp.market` tab open it borrows that session, so Pro delivery fees and the campaign line-up that applies to your account are the ones you see. Without one it mints an anonymous token, says so, and still works.             |
+| **Name or product code**            | Type a product name with suggestions from Snapp Market's own autocomplete, or paste a product id to compare one exact SKU across stores.                                                                                                          |
+| **Persian text that works**         | Arabic and Persian letter forms folded, digits normalised, and word-aware matching — searching `پفک مینو` does not return Domino ice cream.                                                                                                       |
+| **Digikala Jet as a second source** | Searches every Jet shop in range, converting Rial to Toman so the platforms compare. Off by default in 1.0.0.                                                                                                                                     |
+| **Opens the store**                 | Every result has a button that opens that store's page.                                                                                                                                                                                           |
+| **Nothing phones home**             | Requests go to Snapp Market and Digikala Jet and nowhere else. No analytics, no server of ours, no runtime dependencies. See [docs/PRIVACY.md](docs/PRIVACY.md).                                                                                  |
 
 ## Install
 
@@ -93,6 +94,7 @@ of four or more digits is treated as a product code and matched exactly.
 | ----------------------------- | ------------------------------------------------------------- |
 | **ترتیب**                     | Sort mode — see [docs/RANKING.md](docs/RANKING.md)            |
 | **فقط تخفیف کمپینی**          | On: campaign discounts only. Off: also the ordinary catalogue |
+| **تخفیف کاربر جدید**          | Bring back the segmented offers, clearly labelled             |
 | **فقط فروشگاه باز**           | Hide closed stores                                            |
 | **حداقل تخفیف**               | Drop anything under 20/30/50/70%                              |
 | **اسنپ‌مارکت / دیجی‌کالا جت** | Which platforms to query                                      |

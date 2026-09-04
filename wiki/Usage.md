@@ -24,10 +24,48 @@ the popup says the results are approximate.
 | **ترتیب**                     | Sort mode — see [Ranking](Ranking)                                         |
 | **فقط تخفیف کمپینی**          | On: only `تخفیف نارنجی` and `شگفت‌انگیز`. Off: also the ordinary catalogue |
 | **فقط فروشگاه باز**           | Hide stores that are currently closed                                      |
+| **تخفیف کاربر جدید**          | Bring back segmented offers — see below                                    |
 | **حداقل تخفیف**               | Drop anything under 20/30/50/70%                                           |
 | **اسنپ‌مارکت / دیجی‌کالا جت** | Which platforms to query. Jet is off by default in 1.0.0                   |
 
 Changing the sort mode re-runs the search; the toggles apply to the next one.
+
+## New-user prices
+
+Snapp Market's campaign feed mixes two kinds of row. Ordinary ones carry
+`segment: general` and top out around 44% off. The rest are `new_user`, and
+**every** 90-99% discount is one of those — a promotion for a brand-new account,
+not a price an established account can pay. Left in, they take over the top of
+every result list with prices the store does not honour.
+
+They are filtered out by default. The **تخفیف کاربر جدید** checkbox brings them
+back, badged `تخفیف کاربر جدید` in amber, and the popup always says how many were
+skipped.
+
+## Verification
+
+Before you see them, the leading results are re-priced against each store's own
+shelf — the same request the store page makes. A row the store confirms is marked
+`✓ قیمت از خود فروشگاه`; a row the store does not list at all is dropped and
+counted in the notes. Results further down the list keep the campaign's own price.
+
+## New-user prices
+
+Snapp Market's campaign feed mixes two kinds of row. Ordinary ones carry
+`segment: general` and top out around 44% off. The rest are `new_user`, and
+**every** 90-99% discount is one of those — a promotion for a brand-new account,
+not a price an established account can pay. Left in, they take over the top of
+every result list with prices the store does not honour.
+
+They are filtered out by default. The **تخفیف کاربر جدید** checkbox brings them
+back, badged in amber, and the popup always says how many were skipped.
+
+## Verification
+
+Before you see them, the leading results are re-priced against each store's own
+shelf — the same request the store page makes. A row the store confirms is marked
+`✓ قیمت از خود فروشگاه`; a row the store does not list at all is dropped and
+counted in the notes. Results further down the list keep the campaign's own price.
 
 ## Reading a result
 

@@ -49,6 +49,18 @@ Neither considers `minOrder`, which is shown on every card. A store's minimum
 basket can make the cheapest-looking row the wrong one if you are buying a single
 item.
 
+## What never reaches the ranking
+
+Two classes of offer are removed before any of this runs:
+
+- **Segmented offers** (`segment: new_user` and friends) — real rows in the API,
+  but not purchasable by an established account. The `تخفیف کاربر جدید` filter
+  brings them back, labelled.
+- **Offers the store does not list**, caught by re-pricing the leading results
+  against the store's own shelf.
+
+Both are counted in the popup's notes so a short result list explains itself.
+
 ## De-duplication
 
 The same product in the same store can arrive twice — once from the campaign

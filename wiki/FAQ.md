@@ -23,6 +23,18 @@ It is a second source and the ranking rules were written around Snapp Market's
 Pro tier, which Jet has no equivalent of. Turn it on with the دیجی‌کالا جت
 checkbox; results are converted from Rial to Toman so the two are comparable.
 
+### Why did a 99% discount disappear?
+
+Because it was almost certainly a `new_user` offer. Every 90-99% discount in the
+campaign feed is segmented to brand-new accounts and cannot be bought by an
+established one. They are filtered out by default; the **تخفیف کاربر جدید**
+checkbox brings them back with an amber badge.
+
+### What does `✓ قیمت از خود فروشگاه` mean?
+
+That the price was confirmed against the store's own shelf rather than taken from
+the campaign feed. The leading results are checked this way on every search.
+
 ### Why is the top result sometimes not the cheapest?
 
 Because the default mode ranks by **discount depth**, then Pro, then delivery

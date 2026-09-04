@@ -120,6 +120,48 @@ GET /market-party/{vendorCode}?variable={vendorCode}&page_size=100
 }
 ```
 
+> **`segment` تعیین می‌کند این قیمت به چه کسی می‌رسد.** روی یک کمپین واقعی اندازه گرفته شد:
+> `products.List` صددرصد `general` است و سقف تخفیفش حدود ۴۴٪؛ ولی `personalizedProducts`
+> ترکیبی از `general` و `new_user` است و **هر تخفیف ۹۰ تا ۹۹ درصدی، `new_user` است**.
+> این قیمت‌ها برای یک حساب قدیمی اصلاً وجود ندارند. مثال واقعی: کمپین برای
+> «نوشابه کولا زیرو کوکاکولا ۱.۵ لیتری» در فروشگاه `3kj44n` قیمت ۳۹٬۰۷۲ می‌داد،
+> در حالی که قفسهٔ خود فروشگاه همان کالا را با ۸٪ تخفیف، ۱۱۲٬۳۳۲ لیست می‌کرد.
+> افزونه هر چیزی که `general` نیست را `targeted` علامت می‌زند و پیش‌فرض حذفش می‌کند.
+
+### جستجو داخل یک فروشگاه (مرجع راستی‌آزمایی)
+
+همان اندپوینتی که صفحهٔ فروشگاه خودش صدا می‌زند. **این منبع حقیقتِ قیمت است**، نه فید کمپین.
+
+```http
+GET /mobile/v2/product-variation/search
+      ?query=<q>&vendorCode=<code>&firstPage=true&page=0&page_size=10
+      &size=10&origin=vp-search&source=2&latitude=<lat>&longitude=<lng>
+```
+
+```jsonc
+{
+  "data": {
+    "total": 2,
+    "result": [
+      {
+        "id": 4085636, // با productVariationId کمپین یکی نیست
+        "document_id": "4085636-116592",
+        "title": "نوشابه کولا زیرو کوکاکولا 1.5 لیتری",
+        "price": 122100,
+        "discount": 9768,
+        "discountRatio": 8,
+        "stock": 8,
+        "vendor_id": 116592,
+        "menu_category_title": "نوشابه",
+      },
+    ],
+  },
+}
+```
+
+> شناسهٔ کالا بین این اندپوینت و فید کمپین یکی نیست، برای همین تطبیق روی **عنوان**
+> انجام می‌شود و شناسه فقط میان‌بر است.
+
 ### همه‌ی فروشگاه‌های نزدیک (فارغ از کمپین)
 
 ```http
@@ -240,3 +282,7 @@ https://www.digikalajet.com/search/?q=<q>&shopId=<shopId>
 - `GET /market-party/{lat}/{lng}` با pagination ساختارش عوض می‌شود:
   بدون `page` کلید `data.products.List` دارد، با `page` کلید `data.vendors[]`.
 - کروم منابع افزونه را در پروفایل کش می‌کند؛ برای تست باید پروفایل پاک شود.
+- فید کمپین قیمت قابل خرید نیست: `segment` را باید دید و قیمت را با
+  `/mobile/v2/product-variation/search` راستی‌آزمایی کرد.
+- توکن کاربر بسته به بیلد سایت، هم در `persist:siteState` و هم در کلید سادهٔ
+  `JWT` دیده شده — و بخشی از عمر نشست، اسلایس redux خالی است.

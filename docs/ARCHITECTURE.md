@@ -70,6 +70,31 @@ load, so the popup can show which vendor it is on.
 3. Each product becomes an offer: `finalPrice = price - discount`, both in Toman,
    plus the vendor fields and a deep link to the store.
 
+### Segments: who can actually buy at this price
+
+`personalizedProducts` mixes ordinary offers with segmented ones. Measured on a
+live campaign: `products.List` is 100% `segment: general` and tops out near 44%
+off, while `personalizedProducts` carries 119 `new_user` rows among 309 `general`
+ones — and **every** 90-99% discount is `new_user`. Those prices do not exist for
+an established account.
+
+Any offer whose segment is not `general` is marked `targeted` and filtered out
+unless the user asks for it. This is not cosmetic: before the filter existed, the
+extension reported a Coca-Cola Zero at 39,072 Toman that the store lists at
+112,332.
+
+### Verification
+
+The campaign feed is a promotion, not a price list, so `hunt()` re-prices the
+leading offers (six by default) through `/mobile/v2/product-variation/search` —
+the endpoint the store page itself calls. The store's price wins, an offer the
+store does not list is dropped and counted in `stats.unlisted`, and the survivors
+are re-ranked. Offers below the verified head keep their campaign price and are
+not marked verified.
+
+Matching is by title, not id: the campaign feed and the shelf give the same
+product different `productVariationId`s.
+
 With `فقط تخفیف کمپینی` turned off, `searchOffers()` also runs the ordinary
 catalogue search. Those hits carry a `document_id` of `"<productId>-<vendorId>"`
 and no vendor detail, so they are joined against an index built from
