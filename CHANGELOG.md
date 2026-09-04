@@ -4,40 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] — 2026-09-04
-
-The browser extension is now an installable web app.
-
-### Changed
-
-- **It is a PWA, not an extension.** React 19, Vite 8 and TypeScript, installable
-  to a phone's home screen, responsive from 390px to a laptop. The extension, its
-  three browser packages and all of its tooling are gone.
-- **It ships with a server.** Neither platform allows a cross-origin browser
-  request — Snapp Market echoes `Access-Control-Allow-Origin` only for
-  `https://snapp.market`, Digikala Jet sends none at all — so the app is served
-  together with a pass-through proxy on its own origin. The proxy keeps nothing,
-  but it is on the path; `docs/PRIVACY.md` is explicit about what that means and
-  why you should host it yourself.
-
-### Added
-
-- **A discount feed.** The new home tab lists every campaign offer in range from
-  both platforms, deepest discount first, endlessly scrollable, with no query to
-  type. Pages are merged and re-sorted as a whole so the order holds as the list
-  grows.
-- **Bottom navigation** — four tabs on a phone, which become a top bar on a
-  laptop rather than stealing a strip of screen.
-- **Location from the device.** A web app can ask for GPS, which an extension
-  popup could not; coordinates can still be typed, and Jet's saved addresses are
-  offered when that account is linked.
-
-### Kept
-
-Everything that made the results trustworthy: the first-order shelf is still
-never read, search results are still confirmed against the store's own shelf
-before they are shown, there is still no guest mode, and the OTP flows still sit
-behind the same rate-limit budget.
+## [Unreleased]
 
 ## [2.1.0] — 2026-09-04
 
@@ -140,6 +107,41 @@ behind the same rate-limit budget.
 
 - **Digikala Jet saved addresses.** They appear in the location picker beside the
   Snapp Market ones, labelled by platform. Jet is queried by default again.
+
+## [2.0.0] — 2026-09-04
+
+The browser extension is now an installable web app.
+
+### Changed
+
+- **It is a PWA, not an extension.** React 19, Vite 8 and TypeScript, installable
+  to a phone's home screen, responsive from 390px to a laptop. The extension, its
+  three browser packages and all of its tooling are gone.
+- **It ships with a server.** Neither platform allows a cross-origin browser
+  request — Snapp Market echoes `Access-Control-Allow-Origin` only for
+  `https://snapp.market`, Digikala Jet sends none at all — so the app is served
+  together with a pass-through proxy on its own origin. The proxy keeps nothing,
+  but it is on the path; `docs/PRIVACY.md` is explicit about what that means and
+  why you should host it yourself.
+
+### Added
+
+- **A discount feed.** The new home tab lists every campaign offer in range from
+  both platforms, deepest discount first, endlessly scrollable, with no query to
+  type. Pages are merged and re-sorted as a whole so the order holds as the list
+  grows.
+- **Bottom navigation** — four tabs on a phone, which become a top bar on a
+  laptop rather than stealing a strip of screen.
+- **Location from the device.** A web app can ask for GPS, which an extension
+  popup could not; coordinates can still be typed, and Jet's saved addresses are
+  offered when that account is linked.
+
+### Kept
+
+Everything that made the results trustworthy: the first-order shelf is still
+never read, search results are still confirmed against the store's own shelf
+before they are shown, there is still no guest mode, and the OTP flows still sit
+behind the same rate-limit budget.
 
 ## [1.0.1] — 2026-09-04
 

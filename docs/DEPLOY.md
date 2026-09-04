@@ -76,6 +76,24 @@ beyond the one process.
   `vX.Y.Z`, attaches a tarball of `dist/` and `server/` with checksums, and cuts
   a GitHub release.
 
-So releasing is a version bump: change `version` in `package.json`, push to
-`main`, and the tag, the release and the image tag follow. Push without bumping
-and only `latest` and the sha tag move.
+So releasing is a version bump:
+
+```bash
+npm run release -- minor     # bumps package.json and dates the changelog section
+npm run verify
+git commit -am "chore(release): v2.2.0"
+git push origin main         # this is what publishes
+```
+
+`npm run release` refuses to go if the working tree is dirty, if you are not on
+`main`, if the tag already exists, or if `## [Unreleased]` in the changelog is
+empty — a release with no notes is a release nobody can read. It changes nothing
+on GitHub; the push does that.
+
+Push without bumping and only `latest` and the sha tag move; no duplicate release
+is cut.
+
+The tag itself is created through the release API rather than pushed with git.
+A `GITHUB_TOKEN` push of a tag is rejected outright when the commit being tagged
+touches `.github/workflows/`, which a dependency bump does regularly — that
+failure is why it works this way.
