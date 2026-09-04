@@ -9,3 +9,8 @@ coverage/
 .claude/
 .agents/
 .preview/
+
+# Captured API traffic and driven-browser profiles. Every line of a capture
+# carries whatever credentials the site sent, so these never leave the machine.
+probe-out/
+.browser-profile/
