@@ -3,7 +3,7 @@
 export const DEFAULTS = {
   location: null, // { lat, lng, label }
   sortMode: 'best-discount', // best-discount | cheapest-total | lowest-delivery
-  sources: { snapp: true, jet: false }, // Jet is parked for now; toggle it in the popup
+  sources: { snapp: true, jet: true },
   onlyOrange: true, // only campaign discounts (نارنجی / شگفت‌انگیز)
   onlyOpen: true,
   minDiscount: 0,

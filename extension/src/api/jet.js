@@ -5,6 +5,8 @@
 //   GET /products/search/shop/{shopId}/?q=                    -> search inside one shop
 //
 // Jet needs no authentication for search, but every price is in Rial.
+import { getSession } from '../util/store.js';
+
 const BASE = 'https://api.digikalajet.ir';
 const RIAL_TO_TOMAN = 10;
 const HEADERS = {
@@ -13,11 +15,49 @@ const HEADERS = {
   referer: 'https://www.digikalajet.com/',
 };
 
+/**
+ * The signed-in token, when a Jet tab has handed one over.
+ *
+ * Search returns the same rows and the same prices either way — this only
+ * unlocks the account's own endpoints, such as its saved addresses. Jet sends
+ * the token bare, with no `Bearer` prefix.
+ */
+async function authHeaders() {
+  const session = await getSession('jetSessionToken');
+  if (!session?.token) return {};
+  if (session.expiresAt && session.expiresAt < Date.now()) return {};
+  return { authorization: session.token };
+}
+
 async function call(path, params) {
   const query = new URLSearchParams({ ch: 'jj', ...params });
-  const response = await fetch(`${BASE}${path}?${query}`, { headers: HEADERS });
+  const response = await fetch(`${BASE}${path}?${query}`, {
+    headers: { ...HEADERS, ...(await authHeaders()) },
+  });
   if (!response.ok) throw new Error(`دیجی‌کالا جت ${path} → ${response.status}`);
   return response.json();
+}
+
+/** The account's saved delivery addresses, or an empty list when signed out. */
+export async function savedAddresses() {
+  const session = await getSession('jetSessionToken');
+  if (!session?.token) return [];
+  try {
+    const json = await call('/address/', {});
+    return (json?.data?.addresses || [])
+      .filter((entry) => Number(entry.latitude) && Number(entry.longitude))
+      .map((entry) => ({
+        id: `jet-${entry.id}`,
+        label: entry.name || entry.short_address || 'آدرس جت',
+        address: entry.address || '',
+        lat: Number(entry.latitude),
+        lng: Number(entry.longitude),
+        city: '',
+        source: 'jet',
+      }));
+  } catch {
+    return [];
+  }
 }
 
 /**

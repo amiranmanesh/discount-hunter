@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Digikala Jet sign-in support.** The token lives in `persist:DKNow` and is sent
+  bare, with no `Bearer` prefix. Search returns identical rows and prices with or
+  without it — verified against a live account — so it is used only to offer the
+  account's saved Jet addresses, which now appear in the location picker next to
+  the Snapp Market ones and are labelled by platform.
+- Digikala Jet is queried again by default.
+
 ## [1.0.1] — 2026-09-04
 
 ### Fixed

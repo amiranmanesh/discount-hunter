@@ -1,5 +1,6 @@
 // Service worker: owns the network calls, session capture and result cache.
 import { hunt, suggestions } from './src/core/hunt.js';
+import * as jet from './src/api/jet.js';
 import { getState, setState, setSession, getSession, rememberQuery } from './src/util/store.js';
 
 const LAST_RESULT_KEY = 'lastResult';
@@ -15,12 +16,18 @@ async function handle(message) {
   switch (message?.type) {
     case 'snapp-session':
       return storeSnappSession(message.payload);
-    case 'jet-location':
-      return storeJetLocation(message.payload);
+    case 'jet-session':
+      return storeJetSession(message.payload);
     case 'get-state':
       return {
         ...(await getState()),
-        addresses: (await getSession('snappAddresses')) || [],
+        addresses: [
+          ...((await getSession('snappAddresses')) || []).map((a) => ({
+            ...a,
+            source: a.source || 'snapp',
+          })),
+          ...((await getSession('jetAddresses')) || []),
+        ],
         session: await sessionSummary(),
         lastResult: await getSession(LAST_RESULT_KEY),
       };
@@ -71,20 +78,42 @@ async function storeSnappSession(payload) {
   return true;
 }
 
-async function storeJetLocation(payload) {
-  if (!payload?.lat) return false;
-  await setSession('jetLocation', payload);
-  const { location } = await getState();
-  if (!location)
-    await setState({ location: { lat: payload.lat, lng: payload.lng, label: payload.label } });
+async function storeJetSession(payload) {
+  if (!payload) return false;
+
+  await setSession('jetSessionToken', payload.session || null);
+  if (payload.location?.lat) {
+    await setSession('jetLocation', payload.location);
+    const { location } = await getState();
+    if (!location) {
+      await setState({
+        location: {
+          lat: payload.location.lat,
+          lng: payload.location.lng,
+          label: payload.location.label,
+        },
+      });
+    }
+  }
+
+  // Saved Jet addresses need the token, so refresh them whenever it changes.
+  await setSession('jetAddresses', payload.session?.token ? await jet.savedAddresses() : []);
   return true;
 }
 
 async function sessionSummary() {
+  const jetSession = await getSession('jetSessionToken');
+  const jetLive = Boolean(jetSession?.token) && !(jetSession.expiresAt < Date.now());
+
   const session = await getSession('snappSessionToken');
-  if (!session?.token) return { snappLoggedIn: false };
+  if (!session?.token) return { snappLoggedIn: false, jetLoggedIn: jetLive };
   const expired = session.expiresAt && session.expiresAt < Date.now();
-  return { snappLoggedIn: !expired, expired: Boolean(expired), capturedAt: session.capturedAt };
+  return {
+    snappLoggedIn: !expired,
+    expired: Boolean(expired),
+    capturedAt: session.capturedAt,
+    jetLoggedIn: jetLive,
+  };
 }
 
 async function runHunt({ query, location, options }) {

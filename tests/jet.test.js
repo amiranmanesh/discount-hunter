@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { search } from '../extension/src/api/jet.js';
+import { savedAddresses, search } from '../extension/src/api/jet.js';
 
 const item = (overrides = {}) => ({
   id: 23437528,
@@ -93,5 +93,73 @@ describe('jet.search', () => {
   it('throws with the endpoint in the message when Jet fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: false, status: 503 });
     await expect(search('پفک', { ...LOCATION, pages: 1 })).rejects.toThrow('503');
+  });
+});
+
+describe('jet session', () => {
+  const HOME = { lat: 35.66786, lng: 51.48599 };
+
+  it('sends the token bare, without a Bearer prefix', async () => {
+    // Jet's own web app sends `authorization: <jwt>`; adding `Bearer ` breaks it.
+    await chrome.storage.local.set({
+      jetSessionToken: { token: 'jet.jwt.value', expiresAt: Date.now() + 3600_000 },
+    });
+    const fetchMock = mockJet([item()]);
+
+    await search('پفک', { ...HOME, pages: 1 });
+
+    expect(fetchMock.mock.calls[0][1].headers.authorization).toBe('jet.jwt.value');
+  });
+
+  it('ignores an expired token rather than sending it', async () => {
+    await chrome.storage.local.set({
+      jetSessionToken: { token: 'jet.jwt.value', expiresAt: Date.now() - 1000 },
+    });
+    const fetchMock = mockJet([item()]);
+
+    await search('پفک', { ...HOME, pages: 1 });
+
+    expect(fetchMock.mock.calls[0][1].headers.authorization).toBeUndefined();
+  });
+
+  it('returns no saved addresses when signed out', async () => {
+    expect(await savedAddresses()).toEqual([]);
+  });
+
+  it('maps saved addresses once a token is stored', async () => {
+    await chrome.storage.local.set({
+      jetSessionToken: { token: 'jet.jwt.value', expiresAt: Date.now() + 3600_000 },
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          addresses: [
+            {
+              id: 21618981,
+              name: null,
+              short_address: 'محلاتی، بل ابوذر…',
+              address: 'محلاتی، بل ابوذر، بعد از بل پاسدار گمنام',
+              latitude: '35.66786',
+              longitude: '51.48599',
+            },
+            { id: 2, address: 'بدون مختصات', latitude: null, longitude: null },
+          ],
+        },
+      }),
+    });
+
+    expect(await savedAddresses()).toEqual([
+      {
+        id: 'jet-21618981',
+        label: 'محلاتی، بل ابوذر…',
+        address: 'محلاتی، بل ابوذر، بعد از بل پاسدار گمنام',
+        lat: 35.66786,
+        lng: 51.48599,
+        city: '',
+        source: 'jet',
+      },
+    ]);
   });
 });

@@ -110,7 +110,10 @@ function renderAddresses() {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'address';
-    button.innerHTML = `<b>${escapeHtml(address.label)}</b><span>${escapeHtml(address.address)}</span>`;
+    const platform = address.source === 'jet' ? 'دیجی‌کالا جت' : 'اسنپ‌مارکت';
+    button.innerHTML =
+      `<b>${escapeHtml(address.label)} <em>${platform}</em></b>` +
+      `<span>${escapeHtml(address.address)}</span>`;
     button.addEventListener('click', () =>
       applyLocation({ lat: address.lat, lng: address.lng, label: address.label }),
     );

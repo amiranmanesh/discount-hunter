@@ -251,6 +251,45 @@ GET /products/search/all/?q=<q>&shopId=&latitude=<lat>&longitude=<lng>&page=1&so
 
 > **همه‌ی مبالغ ریال هستند.** `is_amazing` معادل «تخفیف نارنجی» اسنپ‌مارکت است.
 
+### نشست کاربر
+
+توکن در `localStorage['persist:DKNow'].user.token` است (به‌همراه `refreshToken` و `userId`)
+و **بدون پیشوند `Bearer`** در هدر `authorization` فرستاده می‌شود:
+
+```http
+authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+```
+
+payload توکن `user_id` و `expire_time` دارد (حدود ۲۴ ساعت اعتبار).
+
+> **جستجو با و بدون توکن دقیقاً یک نتیجه می‌دهد** — همان ردیف‌ها، همان قیمت‌ها،
+> همان هزینهٔ ارسال. آزمایش شد. پس لاگین برای قیمت لازم نیست؛ فقط اندپوینت‌های
+> خود حساب را باز می‌کند.
+
+### آدرس‌های ذخیره‌شده (نیازمند توکن)
+
+```http
+GET /address/
+```
+
+```jsonc
+{
+  "data": {
+    "addresses": [
+      {
+        "id": 21618981,
+        "name": null,
+        "short_address": "محلاتی، بل ابوذر…",
+        "address": "محلاتی، بل ابوذر، بعد از بل پاسدار گمنام",
+        "latitude": "35.66786",
+        "longitude": "51.48599",
+        "in_service_range": true,
+      },
+    ],
+  },
+}
+```
+
 ### جستجو داخل یک فروشگاه
 
 ```http

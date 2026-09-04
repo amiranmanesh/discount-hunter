@@ -139,6 +139,12 @@ body {
   display: block;
   font-size: 12px;
 }
+.address b em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+}
 .address span {
   color: var(--muted);
 }
