@@ -56,8 +56,8 @@ item.
 Two classes of offer are removed before any of this runs:
 
 - **Segmented offers** (`segment: new_user` and friends) — real rows in the API,
-  but not purchasable by an established account. The `تخفیف کاربر جدید` filter
-  brings them back, labelled.
+  but not purchasable by an established account. Always dropped; there is no
+  setting to bring them back.
 - **Offers the store does not list**, caught by re-pricing the leading results
   against the store's own shelf.
 

@@ -12,7 +12,6 @@ export async function hunt({ query, location, options, onProgress }) {
     sortMode = 'best-discount',
     onlyOrange = true,
     onlyOpen = true,
-    includeTargeted = false,
     verifyTop = 6,
     minDiscount = 0,
     maxVendors = 60,
@@ -48,8 +47,9 @@ export async function hunt({ query, location, options, onProgress }) {
     );
   }
 
-  // Outside the campaign filter, add Snapp's regular catalogue so a product that
-  // is simply not in today's orange line-up still gets priced across stores.
+  // Unless the user asks for campaign rows only, add Snapp's regular catalogue so
+  // a product that is not in today's orange line-up still gets a real, buyable
+  // price across every nearby store.
   if (sources.snapp && !onlyOrange) {
     jobs.push(
       snapp
@@ -86,8 +86,9 @@ export async function hunt({ query, location, options, onProgress }) {
     if (onlyOrange && !offer.isCampaign) continue;
     // Segmented offers (`new_user` and friends) are real rows in the API but are
     // not purchasable by an established account — showing them as the winning
-    // price is how the extension used to lie about a 39,000 Toman cola.
-    if (!includeTargeted && offer.targeted) {
+    // price is how the extension used to claim a 39,000 Toman cola the store
+    // sold for 112,332. They are never shown.
+    if (offer.targeted) {
       targetedSkipped += 1;
       continue;
     }

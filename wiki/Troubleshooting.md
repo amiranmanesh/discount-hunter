@@ -2,10 +2,8 @@
 
 ## The search found nothing
 
-**Most likely: the product is not in today's campaign.** `تخفیف نارنجی` is a
-rotating, time-limited line-up, not the whole catalogue. Turn off
-**فقط تخفیف کمپینی** and search again — you will get ordinary store prices across
-every nearby vendor instead.
+**Check that **فقط تخفیف کمپینی** is off** — it is off by default, and with it on
+you only see today's campaign rather than the whole catalogue.
 
 Then check, in order:
 
@@ -34,10 +32,10 @@ offers — a Coca-Cola Zero at 39,072 Toman that the store actually lists at
 They are now excluded by default and the leading results are verified against the
 store's own shelf. If you still see a price the store does not have:
 
-1. Check the badge. An amber `تخفیف کاربر جدید` badge means you turned the
-   **تخفیف کاربر جدید** filter on; those prices are for new accounts.
-2. Check for `✓ قیمت از خود فروشگاه` under the result. Only the leading results
+1. Check for `✓ قیمت از خود فروشگاه` under the result. Only the leading results
    are verified; the ones further down still carry the campaign's own price.
+2. Check the size in the title. `نوشابه زیرو کوکاکولا ۳۰۰ میلی‌لیتر` at 48,400 is
+   not the 1.5-litre bottle at 112,700 — the search matches every size.
 3. `npm run verify-offer` compares one query against the store directly, if you
    want the raw numbers.
 

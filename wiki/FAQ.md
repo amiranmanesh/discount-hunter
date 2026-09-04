@@ -27,8 +27,8 @@ checkbox; results are converted from Rial to Toman so the two are comparable.
 
 Because it was almost certainly a `new_user` offer. Every 90-99% discount in the
 campaign feed is segmented to brand-new accounts and cannot be bought by an
-established one. They are filtered out by default; the **تخفیف کاربر جدید**
-checkbox brings them back with an amber badge.
+established one, so the extension drops them and says how many it dropped. There
+is no setting to bring them back.
 
 ### What does `✓ قیمت از خود فروشگاه` mean?
 

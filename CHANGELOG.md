@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **New-user offers are gone, not optional.** The `تخفیف کاربر جدید` filter has
+  been removed along with the setting behind it: an established account cannot
+  buy at those prices, so there is no case where showing them is right. They are
+  counted in the popup's notes and never listed.
+- **The ordinary catalogue is searched by default.** A product that is not in
+  today's campaign now comes back with the real price every nearby store charges
+  for it, instead of an empty result. `فقط تخفیف کمپینی` still narrows it to
+  campaign rows.
+
 ### Added
 
 - **Digikala Jet sign-in support.** The token lives in `persist:DKNow` and is sent

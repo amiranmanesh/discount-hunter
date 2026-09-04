@@ -78,10 +78,10 @@ off, while `personalizedProducts` carries 119 `new_user` rows among 309 `general
 ones — and **every** 90-99% discount is `new_user`. Those prices do not exist for
 an established account.
 
-Any offer whose segment is not `general` is marked `targeted` and filtered out
-unless the user asks for it. This is not cosmetic: before the filter existed, the
-extension reported a Coca-Cola Zero at 39,072 Toman that the store lists at
-112,332.
+Any offer whose segment is not `general` is marked `targeted` and dropped. There
+is no setting for it: an established account cannot buy at those prices, so there
+is no case where showing them is right. Before the filter existed, the extension
+reported a Coca-Cola Zero at 39,072 Toman that the store lists at 112,332.
 
 ### Verification
 

@@ -87,7 +87,9 @@ describe('hunt', () => {
     expect(result.stats.targetedSkipped).toBe(1);
   });
 
-  it('includes them, labelled, when the user asks for them', async () => {
+  it('never returns a segmented offer, however good it looks', async () => {
+    // There is no setting for this: an established account cannot buy these, so
+    // showing them at the top of the list is always wrong.
     mockShelf({
       general: [cola({ price: 122100, discount: 12210, discountRatio: 10 })],
       targeted: [cola({ productVariationId: 5686818, segment: 'new_user' })],
@@ -96,16 +98,11 @@ describe('hunt', () => {
     const result = await hunt({
       query: 'نوشابه زیرو کوکاکولا',
       location: LOCATION,
-      options: { ...options, includeTargeted: true },
+      options: { ...options, includeTargeted: true }, // ignored on purpose
     });
 
-    expect(result.offers).toHaveLength(2);
-    expect(result.offers[0]).toMatchObject({
-      targeted: true,
-      finalPrice: 39072,
-      campaignLabel: 'تخفیف کاربر جدید',
-    });
-    expect(result.stats.targetedSkipped).toBe(0);
+    expect(result.offers).toHaveLength(1);
+    expect(result.offers.every((offer) => !offer.targeted)).toBe(true);
   });
 
   it('returns nothing rather than a price the account cannot use', async () => {
@@ -123,11 +120,7 @@ describe('hunt', () => {
       targeted: [cola({ segment: 'new_user' })], // same productVariationId
     });
 
-    const result = await hunt({
-      query: 'نوشابه زیرو کوکاکولا',
-      location: LOCATION,
-      options: { ...options, includeTargeted: true },
-    });
+    const result = await hunt({ query: 'نوشابه زیرو کوکاکولا', location: LOCATION, options });
 
     expect(result.offers).toHaveLength(1);
     expect(result.offers[0]).toMatchObject({ targeted: false, finalPrice: 109890 });

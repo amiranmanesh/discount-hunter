@@ -17,7 +17,6 @@ const ui = {
   sortMode: el('sortMode'),
   onlyOrange: el('onlyOrange'),
   onlyOpen: el('onlyOpen'),
-  includeTargeted: el('includeTargeted'),
   minDiscount: el('minDiscount'),
   srcSnapp: el('srcSnapp'),
   srcJet: el('srcJet'),
@@ -60,7 +59,6 @@ function init(loaded) {
   ui.sortMode.value = state.sortMode;
   ui.onlyOrange.checked = state.onlyOrange;
   ui.onlyOpen.checked = state.onlyOpen;
-  ui.includeTargeted.checked = state.includeTargeted;
   ui.minDiscount.value = String(state.minDiscount ?? 0);
   ui.srcSnapp.checked = state.sources?.snapp !== false;
   ui.srcJet.checked = state.sources?.jet !== false;
@@ -157,7 +155,6 @@ for (const [input, key] of [
 for (const [input, key] of [
   [ui.onlyOrange, 'onlyOrange'],
   [ui.onlyOpen, 'onlyOpen'],
-  [ui.includeTargeted, 'includeTargeted'],
 ]) {
   input.addEventListener('change', async () => {
     state = { ...(await send({ type: 'set-state', patch: { [key]: input.checked } })), addresses };
@@ -261,7 +258,6 @@ async function runHunt() {
         sortMode: ui.sortMode.value,
         onlyOrange: ui.onlyOrange.checked,
         onlyOpen: ui.onlyOpen.checked,
-        includeTargeted: ui.includeTargeted.checked,
         minDiscount: Number(ui.minDiscount.value),
         sources: { snapp: ui.srcSnapp.checked, jet: ui.srcJet.checked },
       },
@@ -302,7 +298,7 @@ function renderResults(result, { cached }) {
   if (stats.relaxed) notes.push('نتیجه‌ی دقیق پیدا نشد؛ نزدیک‌ترین موارد نمایش داده شده.');
   if (stats.targetedSkipped) {
     notes.push(
-      `${money.format(stats.targetedSkipped)} پیشنهاد «کاربر جدید» کنار گذاشته شد؛ این قیمت‌ها برای حساب شما اعمال نمی‌شود.`,
+      `${money.format(stats.targetedSkipped)} پیشنهاد «کاربر جدید» نادیده گرفته شد؛ قابل خرید نیست.`,
     );
   }
   if (stats.unlisted) {

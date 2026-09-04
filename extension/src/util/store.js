@@ -4,7 +4,7 @@ export const DEFAULTS = {
   location: null, // { lat, lng, label }
   sortMode: 'best-discount', // best-discount | cheapest-total | lowest-delivery
   sources: { snapp: true, jet: true },
-  onlyOrange: true, // only campaign discounts (نارنجی / شگفت‌انگیز)
+  onlyOrange: false, // campaign rows only; off means the ordinary catalogue too
   onlyOpen: true,
   minDiscount: 0,
   maxVendors: 60,
