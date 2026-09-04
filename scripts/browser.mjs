@@ -2,9 +2,9 @@
 // signed in, then stays up so the scenario can be driven by hand.
 //   node tools/dev.mjs
 import { chromium } from 'playwright';
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedProfile } from './profile.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const EXT = path.join(ROOT, 'extension');
@@ -13,11 +13,7 @@ const PROFILE = path.join(ROOT, '.browser-profile', 'dev');
 
 // Chrome caches extension resources per profile, so start from a clean copy of
 // the signed-in profile on every launch.
-fs.rmSync(PROFILE, { recursive: true, force: true });
-fs.cpSync(SEED, PROFILE, { recursive: true });
-for (const f of fs.readdirSync(PROFILE)) {
-  if (f.startsWith('Singleton')) fs.rmSync(path.join(PROFILE, f), { force: true });
-}
+seedProfile(SEED, PROFILE);
 
 const ctx = await chromium.launchPersistentContext(PROFILE, {
   headless: false,

@@ -12,6 +12,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedProfile } from './profile.mjs';
 import { matchScore, normalize, tokenize } from '../extension/src/util/text.js';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
@@ -19,11 +20,7 @@ const SEED = path.join(ROOT, '.browser-profile', 'session');
 const PROFILE = path.join(ROOT, '.browser-profile', 'verify-offer');
 const QUERY = process.env.Q || 'نوشابه زیرو کوکاکولا';
 
-fs.rmSync(PROFILE, { recursive: true, force: true });
-fs.cpSync(SEED, PROFILE, { recursive: true });
-for (const f of fs.readdirSync(PROFILE)) {
-  if (f.startsWith('Singleton')) fs.rmSync(path.join(PROFILE, f), { force: true });
-}
+seedProfile(SEED, PROFILE);
 
 const ctx = await chromium.launchPersistentContext(PROFILE, {
   headless: false,

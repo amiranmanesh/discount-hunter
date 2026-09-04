@@ -2,16 +2,19 @@
 import { chromium } from 'playwright';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedProfile } from './profile.mjs';
 import fs from 'node:fs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const EXT = path.join(ROOT, 'extension');
+const SEED = path.join(ROOT, '.browser-profile', 'session');
 const PROFILE = path.join(ROOT, '.browser-profile', 'e2e');
 const QUERY = process.env.Q || 'پفک مینو';
 
-// Chrome caches extension resources per profile; start clean so each run tests
-// the code that is actually on disk.
-fs.rmSync(PROFILE, { recursive: true, force: true });
+// Chrome caches extension resources per profile; `seedProfile` strips that cache
+// so each run tests the code that is actually on disk. There is no guest mode, so
+// the signed-in profile is the seed.
+seedProfile(SEED, PROFILE);
 fs.mkdirSync(path.join(ROOT, 'probe-out'), { recursive: true });
 
 const ctx = await chromium.launchPersistentContext(PROFILE, {

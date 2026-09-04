@@ -3,13 +3,14 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedProfile } from './profile.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const EXT = path.join(ROOT, 'extension');
 const SEED = path.join(ROOT, '.browser-profile', 'session'); // already signed in to snapp.market
 const PROFILE = path.join(ROOT, '.browser-profile', 'e2e-session');
 
-fs.rmSync(PROFILE, { recursive: true, force: true });
+seedProfile(SEED, PROFILE);
 fs.cpSync(SEED, PROFILE, { recursive: true });
 for (const f of fs.readdirSync(PROFILE))
   if (f.startsWith('Singleton')) fs.rmSync(path.join(PROFILE, f), { force: true });
