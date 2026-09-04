@@ -53,6 +53,7 @@ body,
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
   font:
@@ -304,8 +305,24 @@ a {
 .field {
   display: grid;
   gap: 5px;
+  min-width: 0; /* inside a flex row an input would otherwise refuse to shrink */
   font-size: 12px;
   color: var(--muted);
+}
+
+.field input,
+.field select {
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row > * {
+  flex: 1 1 140px;
 }
 
 .field input,
@@ -497,7 +514,7 @@ a {
   margin-top: auto;
   padding-top: 6px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 8px;
 }

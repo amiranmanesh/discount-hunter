@@ -79,8 +79,8 @@ export default function SettingsPage() {
           استفاده از موقعیت فعلی
         </button>
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <label className="field" style={{ flex: 1 }}>
+        <div className="row">
+          <label className="field">
             عرض جغرافیایی
             <input
               inputMode="decimal"
@@ -89,7 +89,7 @@ export default function SettingsPage() {
               placeholder="35.7223"
             />
           </label>
-          <label className="field" style={{ flex: 1 }}>
+          <label className="field">
             طول جغرافیایی
             <input
               inputMode="decimal"
