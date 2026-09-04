@@ -378,6 +378,10 @@ button {
   background: var(--surface-2);
   color: var(--muted);
 }
+.badge.campaign.targeted {
+  background: #fde68a;
+  color: #92400e;
+}
 .badge.discount {
   background: var(--orange);
   color: #fff;

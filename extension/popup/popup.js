@@ -17,6 +17,7 @@ const ui = {
   sortMode: el('sortMode'),
   onlyOrange: el('onlyOrange'),
   onlyOpen: el('onlyOpen'),
+  includeTargeted: el('includeTargeted'),
   minDiscount: el('minDiscount'),
   srcSnapp: el('srcSnapp'),
   srcJet: el('srcJet'),
@@ -59,6 +60,7 @@ function init(loaded) {
   ui.sortMode.value = state.sortMode;
   ui.onlyOrange.checked = state.onlyOrange;
   ui.onlyOpen.checked = state.onlyOpen;
+  ui.includeTargeted.checked = state.includeTargeted;
   ui.minDiscount.value = String(state.minDiscount ?? 0);
   ui.srcSnapp.checked = state.sources?.snapp !== false;
   ui.srcJet.checked = state.sources?.jet !== false;
@@ -75,7 +77,9 @@ function init(loaded) {
 
   if (!state.session?.snappLoggedIn) {
     showBanner(
-      'برای قیمت‌های «پرو» و پیشنهادهای شخصی، یک تب <b>snapp.market</b> باز کن و وارد حساب شو. بدون آن هم جستجو کار می‌کند.',
+      state.session?.expired
+        ? 'نشست اسنپ‌مارکت منقضی شده. تب <b>snapp.market</b> را باز و رفرش کن، وگرنه قیمت‌ها مهمان است.'
+        : 'برای قیمت‌های «پرو» و درست، یک تب <b>snapp.market</b> باز کن و وارد حساب شو. بدون آن هم جستجو کار می‌کند، اما قیمت‌ها مهمان است.',
     );
   }
 }
@@ -150,6 +154,7 @@ for (const [input, key] of [
 for (const [input, key] of [
   [ui.onlyOrange, 'onlyOrange'],
   [ui.onlyOpen, 'onlyOpen'],
+  [ui.includeTargeted, 'includeTargeted'],
 ]) {
   input.addEventListener('change', async () => {
     state = { ...(await send({ type: 'set-state', patch: { [key]: input.checked } })), addresses };
@@ -253,6 +258,7 @@ async function runHunt() {
         sortMode: ui.sortMode.value,
         onlyOrange: ui.onlyOrange.checked,
         onlyOpen: ui.onlyOpen.checked,
+        includeTargeted: ui.includeTargeted.checked,
         minDiscount: Number(ui.minDiscount.value),
         sources: { snapp: ui.srcSnapp.checked, jet: ui.srcJet.checked },
       },
@@ -291,6 +297,14 @@ function renderResults(result, { cached }) {
 
   const notes = [];
   if (stats.relaxed) notes.push('نتیجه‌ی دقیق پیدا نشد؛ نزدیک‌ترین موارد نمایش داده شده.');
+  if (stats.targetedSkipped) {
+    notes.push(
+      `${money.format(stats.targetedSkipped)} پیشنهاد «کاربر جدید» کنار گذاشته شد؛ این قیمت‌ها برای حساب شما اعمال نمی‌شود.`,
+    );
+  }
+  if (!stats.authenticated) {
+    notes.push('بدون حساب متصل — قیمت‌ها مهمان است و ممکن است با فروشگاه فرق کند.');
+  }
   if (result.errors?.length) notes.push(...result.errors);
   if (notes.length) showBanner(notes.map(escapeHtml).join(' — '));
 }
@@ -309,6 +323,10 @@ function renderOffer(offer, isTop) {
 
   const campaign = node.querySelector('.badge.campaign');
   campaign.textContent = offer.campaignLabel;
+  if (offer.targeted) {
+    campaign.classList.add('targeted');
+    campaign.title = 'تخفیف سگمنتی؛ ممکن است در سبد شما اعمال نشود';
+  }
 
   const discount = node.querySelector('.badge.discount');
   if (offer.discountPercent > 0)

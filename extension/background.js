@@ -42,8 +42,22 @@ async function handle(message) {
 }
 
 async function storeSnappSession(payload) {
-  if (!payload?.token) return false;
-  await setSession('snappSessionToken', { token: payload.token, capturedAt: payload.capturedAt });
+  if (!payload) return false;
+
+  // A signed-out tab reports `token: null`; clear the stale one rather than
+  // keeping a token the account no longer has.
+  await setSession(
+    'snappSessionToken',
+    payload.token
+      ? {
+          token: payload.token,
+          subject: payload.subject,
+          expiresAt: payload.expiresAt,
+          capturedAt: payload.capturedAt,
+        }
+      : null,
+  );
+
   if (payload.addresses?.length) {
     await setSession('snappAddresses', payload.addresses);
     const { location } = await getState();
@@ -67,9 +81,10 @@ async function storeJetLocation(payload) {
 }
 
 async function sessionSummary() {
-  const token = await getSession('snappSessionToken');
-  if (!token?.token) return { snappLoggedIn: false };
-  return { snappLoggedIn: true, capturedAt: token.capturedAt };
+  const session = await getSession('snappSessionToken');
+  if (!session?.token) return { snappLoggedIn: false };
+  const expired = session.expiresAt && session.expiresAt < Date.now();
+  return { snappLoggedIn: !expired, expired: Boolean(expired), capturedAt: session.capturedAt };
 }
 
 async function runHunt({ query, location, options }) {

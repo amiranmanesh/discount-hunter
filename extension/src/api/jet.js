@@ -76,6 +76,9 @@ function toOffer(item, query) {
     discountPercent: Number(item.price?.discount_percentage ?? 0),
     isCampaign: isAmazing,
     campaignLabel: isAmazing ? 'شگفت‌انگیز' : 'تخفیف فروشگاه',
+    segment: 'general', // Jet does not segment its search results
+    targeted: false,
+    personalized: false,
     stock: item.stock?.has_stock === false ? 0 : item.stock?.is_running_low ? 1 : 99,
     outOfStock: item.stock?.has_stock === false,
     vendor: {

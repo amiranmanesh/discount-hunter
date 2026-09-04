@@ -167,8 +167,12 @@ function mapVendor(raw) {
     isOpen: raw.IsOpen !== false,
     rating: Number(raw.rating ?? 0),
     commentCount: Number(raw.comment_count ?? 0),
-    // The listing endpoint already ships a preview shelf; keep it as a cheap first pass.
-    previewProducts: [...(raw.products || []), ...(raw.personalizedProducts || [])],
+    // The listing endpoint already ships a preview shelf; keep it as a cheap
+    // first pass, tagged the same way `vendorOrangeShelf` tags the full one.
+    previewProducts: [
+      ...(raw.products || []).map((product) => ({ product, personalized: false })),
+      ...(raw.personalizedProducts || []).map((product) => ({ product, personalized: true })),
+    ],
   };
 }
 
@@ -188,10 +192,14 @@ export async function vendorOrangeShelf(vendor, { lat, lng }) {
 
   const data = json?.data || {};
   const asList = (value) => (Array.isArray(value) ? value : value?.List || []);
-  const list = [...asList(data.products), ...asList(data.personalizedProducts)];
   return {
     endsAt: data.firstActivePeriodEndRFC || null,
-    products: list,
+    // `personalizedProducts` is where the segmented offers live. Keep the two
+    // buckets apart so `toOffer` can mark them; see the `targeted` note there.
+    products: [
+      ...asList(data.products).map((product) => ({ product, personalized: false })),
+      ...asList(data.personalizedProducts).map((product) => ({ product, personalized: true })),
+    ],
   };
 }
 
@@ -215,21 +223,33 @@ export async function collectOrangeOffers({ lat, lng, maxVendors, onProgress }) 
     const products =
       shelf && !shelf.__error && shelf.products?.length ? shelf.products : vendor.previewProducts;
     const seen = new Set();
-    for (const product of products) {
+    for (const entry of products) {
+      const product = entry.product ?? entry;
       if (seen.has(product.productVariationId)) continue;
       seen.add(product.productVariationId);
-      offers.push(toOffer(product, vendor));
+      offers.push(toOffer(product, vendor, entry.personalized === true));
     }
   });
 
   return { offers, vendorCount: vendors.length, authenticated, campaignEnds };
 }
 
-function toOffer(product, vendor) {
+/**
+ * `segment` decides who can actually buy at this price.
+ *
+ * Measured against a live campaign: `products.List` is 100% `general` and tops
+ * out around 44% off, while `personalizedProducts` mixes `general` with
+ * `new_user` — and every 90-99% offer is `new_user`. Those prices do not exist
+ * for an established account, so an offer that is not `general` is marked
+ * `targeted` and filtered out unless the user asks for them.
+ */
+function toOffer(product, vendor, personalized = false) {
   const price = Number(product.price ?? 0); // pre-discount price, Toman
   const discount = Number(product.discount ?? 0); // absolute amount off, Toman
   const finalPrice = Math.max(price - discount, 0);
   const slug = encodeURIComponent((vendor.name || 'store').replace(/\s+/g, '-'));
+  const segment = product.segment || 'general';
+  const targeted = segment !== 'general';
 
   return {
     platform: 'snapp',
@@ -243,7 +263,10 @@ function toOffer(product, vendor) {
     discountAmount: discount,
     discountPercent: Number(product.discountRatio ?? 0),
     isCampaign: true, // everything on this shelf is تخفیف نارنجی
-    campaignLabel: 'تخفیف نارنجی',
+    campaignLabel: targeted ? 'تخفیف کاربر جدید' : 'تخفیف نارنجی',
+    segment,
+    targeted,
+    personalized,
     stock: Number(product.stock ?? 0),
     outOfStock: Boolean(product.is_out_of_stock),
     vendor: {
@@ -339,6 +362,9 @@ export async function searchOffers(query, { lat, lng, pages = 2 }) {
       discountPercent: Number(item.discountRatio ?? 0),
       isCampaign: false,
       campaignLabel: 'تخفیف فروشگاه',
+      segment: 'general',
+      targeted: false,
+      personalized: false,
       stock: 99,
       outOfStock: false,
       vendor: { ...vendor },

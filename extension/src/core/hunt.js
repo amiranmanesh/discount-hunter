@@ -12,6 +12,7 @@ export async function hunt({ query, location, options, onProgress }) {
     sortMode = 'best-discount',
     onlyOrange = true,
     onlyOpen = true,
+    includeTargeted = false,
     minDiscount = 0,
     maxVendors = 60,
   } = options || {};
@@ -75,12 +76,20 @@ export async function hunt({ query, location, options, onProgress }) {
 
   const strict = [];
   const loose = [];
+  let targetedSkipped = 0;
   for (const offer of pool) {
     const { score, strict: isStrict } = byCode
       ? { score: offer.productId === normalizedQuery ? 120 : 0, strict: true }
       : matchScore(offer.title, queryTokens, normalizedQuery);
     if (!score) continue;
     if (onlyOrange && !offer.isCampaign) continue;
+    // Segmented offers (`new_user` and friends) are real rows in the API but are
+    // not purchasable by an established account — showing them as the winning
+    // price is how the extension used to lie about a 39,000 Toman cola.
+    if (!includeTargeted && offer.targeted) {
+      targetedSkipped += 1;
+      continue;
+    }
     if (onlyOpen && offer.vendor?.isOpen === false) continue;
     if ((offer.discountPercent || 0) < minDiscount) continue;
     (isStrict ? strict : loose).push({ ...offer, matchScore: score, looseMatch: !isStrict });
@@ -102,6 +111,7 @@ export async function hunt({ query, location, options, onProgress }) {
       scanned: pool.length,
       matched: matched.length,
       relaxed: strict.length === 0 && relaxed.length > 0,
+      targetedSkipped,
       vendorCount,
       authenticated,
       campaignEnds,
