@@ -10,6 +10,12 @@ updates:
         dependency-type: development
       production-dependencies:
         dependency-type: production
+    ignore:
+      # typescript-eslint refuses to load against TypeScript 7 and fails the lint
+      # step outright. Drop this once it ships support:
+      # https://github.com/typescript-eslint/typescript-eslint/issues/10940
+      - dependency-name: typescript
+        versions: ['>=7']
 
   - package-ecosystem: github-actions
     directory: /
@@ -20,3 +26,9 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    ignore:
+      # The base image has to move together with `.nvmrc` and `engines`, or the
+      # container runs a different Node than CI and every contributor. Majors are
+      # a deliberate change, not a bump.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
