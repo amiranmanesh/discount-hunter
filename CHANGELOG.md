@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.0.1] — 2026-09-17
+
+### Fixed
+
+- **Snapp Market and Okala failed completely on an HTTP deployment.** Both need
+  a per-device id, and both built it with `crypto.randomUUID`, which exists only
+  in a secure context. On a plain-HTTP origin it is `undefined`, so the call
+  threw `TypeError: crypto.randomUUID is not a function` before any request went
+  out — measured on a real deployment as an empty feed with no API calls at all,
+  while Digikala Jet, which needs no id, kept working. Ids now come from
+  `src/core/uuid.ts`, which falls back to `crypto.getRandomValues`. The same
+  page went from 0 offers to 149 with no other change.
+- Asking for GPS on an HTTP origin now says that the browser blocks
+  geolocation outside HTTPS, and points at entering coordinates by hand, rather
+  than reporting it as an ordinary permission failure.
+
+Neither fix makes HTTPS optional: geolocation, the service worker and the
+install prompt are secure-context features and cannot be filled in from the
+page. See [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## [3.0.0] — 2026-09-17
 
 Rebuilt on Next.js. The app and its proxy were always two halves of one thing;

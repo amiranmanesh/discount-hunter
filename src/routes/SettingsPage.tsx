@@ -26,6 +26,16 @@ export default function SettingsPage() {
       setStatus('این مرورگر موقعیت‌یابی ندارد');
       return;
     }
+    // Geolocation is a secure-context feature. On a plain-HTTP deployment the
+    // API is present but every call is refused, with a message the browser
+    // words as an ordinary permission denial — so say what is actually wrong
+    // instead of letting it look like a settings problem.
+    if (!window.isSecureContext) {
+      setStatus(
+        'روی آدرس http موقعیت‌یابی مرورگر بسته است — با HTTPS باز کن، یا مختصات را دستی وارد کن',
+      );
+      return;
+    }
     setStatus('در حال گرفتن موقعیت…');
     navigator.geolocation.getCurrentPosition(
       (position) => {

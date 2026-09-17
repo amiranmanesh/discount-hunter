@@ -6,6 +6,7 @@
 // stores and offers need no token, search does.
 import { ApiError, OKALA_BASE, request } from './http';
 import { makeSession, type Session } from '../auth/session';
+import { randomUuid } from '../core/uuid';
 import type { Location, Offer, Vendor } from '../core/types';
 
 const RIAL_TO_TOMAN = 10;
@@ -15,7 +16,7 @@ const DEVICE_KEY = 'dh:okala:device';
 export function deviceId(): string {
   let id = localStorage.getItem(DEVICE_KEY);
   if (!id) {
-    id = crypto.randomUUID();
+    id = randomUuid();
     localStorage.setItem(DEVICE_KEY, id);
   }
   return id;
@@ -24,7 +25,7 @@ export function deviceId(): string {
 function gatewayHeaders(authenticated: boolean): Record<string, string> {
   return {
     'x-user-unique-id': deviceId(),
-    'x-correlation-id': crypto.randomUUID(),
+    'x-correlation-id': randomUuid(),
     ...(authenticated ? {} : { 'x-skip-authorization': 'true' }),
   };
 }

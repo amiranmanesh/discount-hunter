@@ -3,6 +3,7 @@ import { ApiError, NotSignedInError, SNAPP_BASE, request } from './http';
 import { makeSession, type Session } from '../auth/session';
 import { normalize } from '../core/text';
 import { isPoolError, pooled } from '../core/pool';
+import { randomUuid } from '../core/uuid';
 import type { Location, Offer, Vendor } from '../core/types';
 
 const APP_VERSION = '1.399.10';
@@ -14,7 +15,7 @@ const SCOPE = 'mobile_v2 mobile_v1 webview';
 export function deviceId(): string {
   let udid = localStorage.getItem(DEVICE_KEY);
   if (!udid) {
-    udid = crypto.randomUUID();
+    udid = randomUuid();
     localStorage.setItem(DEVICE_KEY, udid);
   }
   return udid;
