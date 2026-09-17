@@ -18,7 +18,7 @@ it in the same pull request as the fix.
 
 ```bash
 npm install
-npm run dev        # Vite on :5173, with the /api proxy
+npm run dev        # Next.js on :3000, app and /api proxy together
 npm run verify     # what CI runs: format, lint, typecheck, tests, build
 npm run preview:ui # render every route at phone and laptop size
 ```

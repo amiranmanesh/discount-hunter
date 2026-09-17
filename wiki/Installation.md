@@ -3,11 +3,11 @@
 ## Docker
 
 ```bash
-docker run -d --name discount-hunter -p 4173:4173 \
+docker run -d --name discount-hunter -p 3000:3000 \
   ghcr.io/amiranmanesh/discount-hunter:latest
 ```
 
-Then open `http://localhost:4173`. On a phone, use the machine's LAN address and
+Then open `http://localhost:3000`. On a phone, use the machine's LAN address and
 add it to the home screen — it installs as a standalone app.
 
 With the repo's [`compose.yaml`](https://github.com/amiranmanesh/discount-hunter/blob/main/compose.yaml):
@@ -21,7 +21,7 @@ Images are published for `linux/amd64` and `linux/arm64` on every push to `main`
 | Tag        | Points at                   |
 | ---------- | --------------------------- |
 | `latest`   | newest build of `main`      |
-| `2.0.0`    | that exact released version |
+| `3.0.0`    | that exact released version |
 | `sha-1a2b` | one specific commit         |
 
 ## From source
@@ -31,11 +31,11 @@ git clone https://github.com/amiranmanesh/discount-hunter.git
 cd discount-hunter
 npm ci
 npm run build
-npm start          # → http://localhost:4173
+npm start          # → http://localhost:3000
 ```
 
-Node 22. For development, `npm run dev` gives the same thing on :5173 with hot
-reload.
+Node 22. For development, `npm run dev` gives the same app on the same port with
+hot reload.
 
 ## Behind a reverse proxy
 
@@ -45,19 +45,26 @@ exists.
 
 ```nginx
 location / {
-  proxy_pass http://127.0.0.1:4173;
+  proxy_pass http://127.0.0.1:3000;
   proxy_set_header Host $host;
   proxy_set_header X-Forwarded-Proto $scheme;
 }
 ```
 
+Caddy is one line: `reverse_proxy 127.0.0.1:3000`. Either way there is no origin
+or base path to set anywhere — the page and its proxy are the same server, so
+your own domain works as soon as it points here.
+
 A PWA installs only from a secure context, so use HTTPS (or `localhost`).
 
 ## Configuration
 
-`PORT` (default `4173`) and `HOST` (default `0.0.0.0`). Nothing else, and nothing
-to persist: sessions live in the browser and the proxy keeps no state.
-`GET /healthz` reports on the process without touching either upstream.
+Every variable is optional: `PORT` (default `3000`), `HOSTNAME` (default
+`0.0.0.0`), and `ALLOWED_ORIGINS` only if some _other_ origin has to call this
+proxy. Nothing to persist either — sessions live in the browser and the proxy
+keeps no state. `GET /api/health` reports on the process without touching any
+upstream. Full table:
+[`docs/DEPLOY.md`](https://github.com/amiranmanesh/discount-hunter/blob/main/docs/DEPLOY.md).
 
 ## Sign in
 

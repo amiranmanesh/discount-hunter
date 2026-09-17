@@ -13,5 +13,4 @@
 ---
 
 - [Repository](https://github.com/amiranmanesh/discount-hunter)
-- [Website](https://amiranmanesh.github.io/discount-hunter/)
 - [Container image](https://github.com/amiranmanesh/discount-hunter/pkgs/container/discount-hunter)

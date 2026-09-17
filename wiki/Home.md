@@ -5,7 +5,7 @@ the **شگفت‌انگیز** line-up on Digikala Jet and Okala's offer carousel
 own accounts — and sorts everything by how deep the discount actually is.
 
 Persian documentation: [README.fa.md](https://github.com/amiranmanesh/discount-hunter/blob/main/README.fa.md)
-· [Website](https://amiranmanesh.github.io/discount-hunter/)
+· [Container image](https://github.com/amiranmanesh/discount-hunter/pkgs/container/discount-hunter)
 
 ## Pages
 
@@ -29,10 +29,12 @@ you, ranked by discount, then Snapp Market **Pro** stores, then delivery fee.
 
 ## Why it needs a server
 
-Neither platform allows a cross-origin browser request — Snapp Market sends
-`Access-Control-Allow-Origin` only for its own site, Digikala Jet sends none at
-all — so a web page cannot call them directly, whatever its code does. The app is
-served together with a small pass-through proxy on the same origin. See
+None of the three platforms allows a cross-origin browser request — Snapp Market
+sends `Access-Control-Allow-Origin` only for its own site, Digikala Jet sends
+none at all, Okala omits it from the response — so a web page cannot call them
+directly, whatever its code does. The app is a Next.js server instead: one
+process renders the page and forwards `/api/*` upstream from the server side,
+which is why it runs unchanged on `localhost` or on your own domain. See
 [Installation](Installation) and
 [ARCHITECTURE.md](https://github.com/amiranmanesh/discount-hunter/blob/main/docs/ARCHITECTURE.md).
 

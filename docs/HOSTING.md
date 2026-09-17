@@ -11,135 +11,74 @@ Measured against all three, from an arbitrary origin, with a real `GET`:
 | Digikala Jet | none at all                                                                                                                        |
 | Okala        | none — its _preflight_ answers permissively, but the response omits the header, which the browser treats as a refusal all the same |
 
-No client-side code changes that. So the app always talks to a proxy it controls,
-and the only question is where that proxy lives.
+No client-side code changes that. The request has to leave from a server, which
+is why this app is a Next.js server and not a bundle you can drop on a CDN.
 
-`VITE_API_BASE` answers it at build time:
-
-| Value           | Meaning                                                                      |
-| --------------- | ---------------------------------------------------------------------------- |
-| unset           | `/api` on the app's own origin — what `npm start` and the Docker image serve |
-| an absolute URL | a proxy somewhere else, for a static host                                    |
-
----
-
-## 1. One server (simplest, and the default)
+## The default: one server, and nothing to configure
 
 ```bash
-docker run -d -p 4173:4173 ghcr.io/amiranmanesh/discount-hunter:latest
+docker run -d -p 3000:3000 ghcr.io/amiranmanesh/discount-hunter:latest
 ```
 
-The app and the proxy are one process on one origin. Nothing to configure, no
-CORS anywhere, and the token never leaves your machine except to the platform it
-came from. [`docs/DEPLOY.md`](DEPLOY.md) covers it.
+The page and the proxy are the same process on the same origin. The browser only
+ever calls `/api/...` on the host it is already on, so:
 
-## 2. GitHub Pages + the same Docker image as a proxy
+- there is no CORS anywhere — not to configure, not to get wrong;
+- the app works identically on `localhost:3000`, on `discount.example.ir` and
+  behind any reverse proxy, with no rebuild;
+- moving it to a new domain is a DNS change, not a deploy.
 
-No Cloudflare needed. The image you already publish can run as nothing but a
-proxy: it serves `/api/*` wherever you put it, and `ALLOWED_ORIGINS` says which
-app origin may call it.
+This is what [DEPLOY.md](DEPLOY.md) describes, and what you want in essentially
+every case, including your own domain.
 
-On any host you control — a small VPS, an Iranian PaaS, anything that runs a
-container:
+## The exception: the UI and the proxy on different origins
+
+Only worth doing when the app is served by something that is not this server —
+another front-end, a browser extension, a second deployment kept for testing.
+Then two variables come into play, and they have to agree:
+
+| Side      | Variable                           | Value                                                  |
+| --------- | ---------------------------------- | ------------------------------------------------------ |
+| the UI    | `NEXT_PUBLIC_API_BASE` (**build**) | `https://proxy.example.ir/api`                         |
+| the proxy | `ALLOWED_ORIGINS` (runtime)        | `https://app.example.ir` — exactly the UI's own origin |
 
 ```bash
-docker run -d -p 4173:4173 \
-  -e ALLOWED_ORIGINS="https://amiranmanesh.github.io" \
+# the proxy: the same image, reached from somewhere else
+docker run -d -p 3000:3000 \
+  -e ALLOWED_ORIGINS="https://app.example.ir" \
   ghcr.io/amiranmanesh/discount-hunter:latest
+
+# the UI: built once with the proxy's address baked in
+NEXT_PUBLIC_API_BASE=https://proxy.example.ir/api npm run build
 ```
 
-Put it behind TLS on a hostname of yours — say `api.yourdomain.ir` — then tell
-the Pages build where it is:
+`NEXT_PUBLIC_API_BASE` is inlined into the bundle at build time — a restart will
+not change it, only a rebuild will.
 
-```bash
-gh variable set PAGES_API_BASE --body "https://api.yourdomain.ir/api"
-```
+`ALLOWED_ORIGINS` is a comma-separated list and is never `*`. The proxy forwards
+whatever `Authorization` header it is handed, so any origin it echoes back is an
+origin that can spend the user's platform session.
 
-Push, or run the Pages workflow by hand, and Pages publishes the app instead of
-the project page. **Until `PAGES_API_BASE` is set, the workflow deliberately
-keeps publishing the project page** — a static build with nowhere to call would
-load and then fail on every request.
-
-`ALLOWED_ORIGINS` takes a comma-separated list and is never `*`. This proxy
-forwards whatever `Authorization` header it is handed, so any origin it echoes is
-an origin that can spend the session.
-
-The same container is still serving the app at its own address, which is
-harmless; set `PORT` and firewall it to taste if you would rather it did not.
-
-## 3. GitHub Pages + a Worker on the same domain (no CORS)
-
-The nicest of the static options: the browser never makes a cross-origin request
-at all, because `/api/*` is the same host as the app.
-
-```
-yourdomain.ir/*        → GitHub Pages (this app)
-yourdomain.ir/api/*    → Cloudflare Worker (worker/)
-```
-
-1. Point the domain at Pages and set it as the custom domain in the repository's
-   Pages settings.
-2. Deploy the Worker with a route on that domain:
-
-   ```bash
-   cd worker
-   npx wrangler deploy          # after setting [[routes]] in wrangler.toml
-   ```
-
-3. Leave `ALLOWED_ORIGINS` empty — with same-origin routing there is no CORS to
-   allow — and leave the `PAGES_API_BASE` repository variable unset, so the app
-   keeps calling `/api`.
-
-This needs the domain's DNS to sit behind a provider that can route one path to a
-Worker and the rest to Pages. Cloudflare does it directly. Another CDN can too,
-if it supports per-path origins.
-
-## 4. GitHub Pages + a Worker on its own origin (CORS, but yours)
-
-When the domain cannot split paths, the Worker lives at its own address and is
-told which origin may talk to it.
-
-1. Deploy the Worker and set `ALLOWED_ORIGINS` to exactly the app's origin —
-   `https://you.github.io` or your custom domain. Not `*`: this Worker forwards
-   whatever `Authorization` header it is given.
-2. Set the repository variable `PAGES_API_BASE` to the Worker's base, including
-   `/api`:
-
-   ```bash
-   gh variable set PAGES_API_BASE --body "https://discount-hunter-api.you.workers.dev/api"
-   ```
-
-3. Push, or run the Pages workflow by hand.
+If the app is ever deployed with nothing behind its API base, the first request
+says so in as many words rather than failing on a parse error.
 
 ## What a proxy sees
 
-Whichever option you pick, the proxy is on the path between you and the
-platforms, and the request it forwards carries **your session token**. Neither
-`server/index.mjs` nor `worker/index.mjs` reads it, stores it or logs it — they
-set the `Origin` the upstream expects and stream the answer back — but that is a
-promise in code, which is only worth as much as your trust in whoever runs it.
+Whichever way you run it, the proxy sits between you and the platforms, and the
+request it forwards carries **your session token**.
+`app/api/[platform]/[...path]/route.ts` does not read it, store it or log it — it
+sets the `Origin` the upstream expects and streams the answer back — but that is
+a promise in code, which is only worth as much as your trust in whoever runs it.
 
-Run your own. That is the whole reason both are a single readable file, and the
-reason there is no hosted instance to point you at.
+Run your own. That is the whole reason the proxy is a single readable file, and
+the reason there is no hosted instance to point you at.
 
 ## Reachability
 
-The three APIs are Iranian and generally expect Iranian traffic. A proxy on a
-global edge network may be slower, or refused, depending on where its nodes sit
-and where you are. If a deployed proxy answers `502` while the same request works
-from your own machine, that is the thing to suspect first — a host in-country
-(options 1 and 2) sidesteps it entirely, which is the main reason option 2 exists
-alongside the Worker.
+The three APIs are Iranian and generally expect Iranian traffic. A server outside
+the country may be slower, or refused outright. If a deployed instance answers
+`502` while the same request works from your own machine, that is the thing to
+suspect first — a host in-country sidesteps it entirely.
 
-## Building for a static host yourself
-
-```bash
-VITE_BASE=/discount-hunter/ VITE_API_BASE=https://your-proxy/api npm run build
-```
-
-`VITE_BASE` has to match the path the site is served from — a project page is
-`/<repo>/`, a custom domain is `/`. The bundle, the service worker and the router
-all key off it, and a mismatch shows up as a blank page with 404s for the assets.
-
-If the app is deployed with no proxy behind its API base, the first request says
-so in as many words rather than failing with a parse error.
+This is also why CI never calls the real upstreams: a GitHub runner cannot tell a
+blocked request from a broken one.

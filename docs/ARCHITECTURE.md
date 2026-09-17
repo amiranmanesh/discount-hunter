@@ -6,7 +6,7 @@ Neither platform lets a browser call it from another origin.
 
 ```
 $ curl -sI 'https://svc.snapp.market/mobile/v3/search/suggest?query=x' \
-    -H 'Origin: http://localhost:5173' | grep -i allow-origin
+    -H 'Origin: http://localhost:3000' | grep -i allow-origin
   (nothing)
 
 $ curl -sI 'https://svc.snapp.market/mobile/v3/search/suggest?query=x' \
@@ -14,7 +14,7 @@ $ curl -sI 'https://svc.snapp.market/mobile/v3/search/suggest?query=x' \
 access-control-allow-origin: https://snapp.market
 
 $ curl -sI 'https://api.digikalajet.ir/products/search/all/?q=x&...' \
-    -H 'Origin: http://localhost:5173' | grep -i allow-origin
+    -H 'Origin: http://localhost:3000' | grep -i allow-origin
   (nothing)
 ```
 
@@ -24,11 +24,19 @@ read either response, whatever its code does. The browser extension this app
 replaces was exempt because host permissions bypass CORS; a web page has no such
 exemption.
 
-So the app is **served with a proxy on its own origin**, not published as static
-files. `server/index.mjs` serves `dist/` and forwards `/api/snapp/*` and
-`/api/jet/*` to the two upstreams with the `Origin`/`Referer` each expects. The
-Vite dev server carries the same proxy, from the same table
-(`server/targets.mjs`), so development and production cannot drift.
+So the app is **a server, not a bundle**. One Next.js process renders the pages
+and answers `/api/<platform>/*`, forwarding each call upstream with the
+`Origin`/`Referer` that platform expects
+(`app/api/[platform]/[...path]/route.ts`, over the table in
+`src/server/targets.ts`). `npm run dev` and the production image run that same
+route handler, so development and production cannot drift.
+
+Because the page and the proxy are one origin by construction, the app carries no
+notion of where it is deployed: `localhost`, a personal domain or a reverse proxy
+all work without a rebuild or a setting. The one thing the server must not do is
+normalise the forwarded path — several upstream endpoints end in a slash and mean
+something else without it — which is why `skipTrailingSlashRedirect` is set in
+`next.config.ts`.
 
 The proxy is a pass-through. It stores nothing, logs no bodies, and does not read
 the `Authorization` header it forwards — but it is on the path, so host it
@@ -49,9 +57,16 @@ src/
   auth/              session, OTP rate limiting, phone normalisation
   store/settings.ts  persisted settings and sessions (zustand)
   store/auth.ts      sign-in, sign-out, "give me a live token"
-  routes/            one file per tab
+  routes/            the component behind each tab
   components/        offer card, bottom navigation, prompts
-server/              the production server and the shared proxy table
+  server/targets.ts  where each `/api/<platform>` prefix points
+  server/cors.ts     the allow-list rules, for the cross-origin case only
+app/
+  layout.tsx         the shell: header, bottom navigation, providers
+  page.tsx …         one folder per tab, each a thin wrapper over `src/routes/`
+  api/[platform]/    the pass-through proxy
+  api/health/        liveness, without touching any upstream
+public/sw.js         the service worker: shell and images, never a price
 ```
 
 `core/` and `auth/` are pure; they are the parts with tests. Everything that

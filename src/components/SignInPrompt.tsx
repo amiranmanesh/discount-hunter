@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import Link from 'next/link';
 
 export default function SignInPrompt() {
   return (
@@ -9,7 +9,7 @@ export default function SignInPrompt() {
         می‌خواهند — مهمان کمپین دیگری با قیمت دیگری می‌بیند. دیجی‌کالا جت بدون ورود هم جواب می‌دهد؛
         اگر تیکش را زده باشی جستجو کار می‌کند.
       </p>
-      <Link className="button button--primary" to="/accounts">
+      <Link className="button button--primary" href="/accounts">
         ورود با شماره موبایل
       </Link>
     </div>

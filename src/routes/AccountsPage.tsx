@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { PLATFORMS, accountStatus, requestCode, signOut, verifyCode } from '../store/auth';
 import { useSettings } from '../store/settings';

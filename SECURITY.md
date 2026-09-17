@@ -17,7 +17,7 @@ server-side state.
 
 Both platforms refuse cross-origin browser requests, so calls pass through this
 app's own server ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the
-measurements). `server/index.mjs` forwards the request and streams the answer
+measurements). `app/api/[platform]/[...path]/route.ts` forwards the request and streams the answer
 back: it stores nothing, logs no bodies, and does not read the `Authorization`
 header.
 

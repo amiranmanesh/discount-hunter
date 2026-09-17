@@ -1,27 +1,47 @@
 # Self-hosting, one command:  docker compose up -d
 #
 # Nothing is persisted because nothing is stored: sessions live in the browser,
-# and the proxy keeps no state.
+# and the proxy keeps no state. There is no database, no volume and no secret.
+#
+#   cp .env.example .env    # optional — every value below has a default
+#   docker compose up -d
+#
+# Put a TLS-terminating reverse proxy in front of it for a public domain; see
+# docs/DEPLOY.md for nginx, Caddy and Traefik.
+name: discount-hunter
+
 services:
   app:
-    image: ghcr.io/amiranmanesh/discount-hunter:latest
-    # Swap the line above for this to build from the working copy:
-    # build: .
+    image: ${APP_IMAGE:-ghcr.io/amiranmanesh/discount-hunter:latest}
+    # Uncomment to build from this working copy instead of pulling the image.
+    # build:
+    #   context: .
+    #   args:
+    #     NODE_IMAGE: ${NODE_IMAGE:-node:22-alpine}
+    #     NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     container_name: discount-hunter
     restart: unless-stopped
     ports:
-      - '4173:4173'
+      - '${APP_PORT:-3000}:3000'
     environment:
-      PORT: 4173
+      PORT: 3000
+      # Only for the unusual case of another origin calling this proxy. Empty
+      # means same-origin hosting, where CORS does not arise at all.
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      # Shown by /api/health; handy for telling two deploys apart.
+      APP_VERSION: ${APP_VERSION:-}
     healthcheck:
       test:
         [
           'CMD',
           'node',
           '-e',
-          "fetch('http://127.0.0.1:4173/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 30s
-      timeout: 3s
+      timeout: 5s
       retries: 3
-      start_period: 5s
+      start_period: 15s
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '5' }

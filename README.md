@@ -4,9 +4,9 @@
   <p><strong>Every Snapp Market, Digikala Jet and Okala discount near you, deepest first — as an installable web app.</strong></p>
   <p><strong>English</strong> · <a href="README.fa.md">فارسی</a></p>
   <p>
-    <a href="https://amiranmanesh.github.io/discount-hunter/">Website</a> ·
     <a href="https://github.com/amiranmanesh/discount-hunter/wiki">Wiki</a> ·
     <a href="#run-it">Run it</a> ·
+    <a href="docs/DEPLOY.md">Deploy</a> ·
     <a href="docs/ARCHITECTURE.md">Architecture</a> ·
     <a href="docs/API.md">Endpoints</a> ·
     <a href="docs/PRIVACY.md">Privacy</a> ·
@@ -16,7 +16,7 @@
     <a href="https://github.com/amiranmanesh/discount-hunter/actions/workflows/release.yml"><img alt="Release" src="https://github.com/amiranmanesh/discount-hunter/actions/workflows/release.yml/badge.svg" /></a>
     <a href="https://github.com/amiranmanesh/discount-hunter/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/amiranmanesh/discount-hunter/actions/workflows/ci.yml/badge.svg" /></a>
     <a href="https://github.com/amiranmanesh/discount-hunter/pkgs/container/discount-hunter"><img alt="Container image" src="https://img.shields.io/badge/ghcr.io-discount--hunter-2496ed?logo=docker&logoColor=white" /></a>
-    <img alt="React 19" src="https://img.shields.io/badge/react-19-149eca" />
+    <img alt="Next.js 16" src="https://img.shields.io/badge/next.js-16-000000?logo=nextdotjs" />
     <img alt="PWA" src="https://img.shields.io/badge/PWA-installable-ff5f00" />
     <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue" /></a>
   </p>
@@ -58,7 +58,7 @@ Three rules, each of which exists because the app once got it wrong:
 **Docker, one command:**
 
 ```bash
-docker run -p 4173:4173 ghcr.io/amiranmanesh/discount-hunter:latest
+docker run -p 3000:3000 ghcr.io/amiranmanesh/discount-hunter:latest
 ```
 
 or `docker compose up -d` with the [`compose.yaml`](compose.yaml) in this repo.
@@ -70,27 +70,30 @@ git clone https://github.com/amiranmanesh/discount-hunter.git
 cd discount-hunter
 npm ci
 npm run build
-npm start          # → http://localhost:4173
+npm start          # → http://localhost:3000
 ```
+
+`npm run dev` gives you the same app on the same port with hot reload.
 
 Open it on your phone on the same network and add it to the home screen; it
 installs as a standalone app.
 
-For development, `npm run dev` gives you the same thing on :5173 with hot reload.
-
-**On a static host?** The app can be deployed to GitHub Pages, but not on its
-own: none of the three APIs allows a cross-origin browser request, so a static
-build needs a proxy it is allowed to reach. `worker/` is that proxy as a
-Cloudflare Worker — route `yourdomain/api/*` to it and no CORS is involved at
-all. [`docs/HOSTING.md`](docs/HOSTING.md) has the measurements and the three
-topologies.
+**On your own domain**, put it behind a reverse proxy that terminates TLS and
+forwards everything — including `/api/*` — to the container. There is no origin,
+base path or callback URL to configure, because the page and its proxy are the
+same server. [`docs/DEPLOY.md`](docs/DEPLOY.md) has nginx, Caddy and Traefik
+blocks, and the full list of variables (all of which are optional).
 
 ### Why it needs a server
 
-Neither platform allows a cross-origin browser request — Snapp Market sends
-`Access-Control-Allow-Origin` only for its own site, Digikala Jet sends none at
-all — so the page cannot call them directly, whatever the code does. The app is
-therefore served together with a small pass-through proxy on the same origin.
+None of the three platforms allows a cross-origin browser request — Snapp Market
+sends `Access-Control-Allow-Origin` only for its own site, Digikala Jet sends
+none at all, Okala omits it from the response — so a page cannot call them
+directly, whatever the code does. So the app is a Next.js server: the same
+process renders the page and forwards `/api/*` upstream, from the server side,
+where no cross-origin rule applies. That is why it works on `localhost`, on a
+personal domain and behind a reverse proxy without a single setting.
+
 The proxy keeps nothing, but it is on the path, so run your own:
 [docs/PRIVACY.md](docs/PRIVACY.md) is explicit about the trade.
 
@@ -119,17 +122,21 @@ signed in to Jet, its saved addresses are listed there too.
 ## How it is built
 
 ```
+app/            the App Router: the shell, one folder per tab
+app/api/        the pass-through proxy and the health check — the server side
 src/api/        one client per platform; everything that touches the network
 src/core/       the feed, the search, ranking, Persian matching — all pure
 src/auth/       sessions, OTP rate limiting, phone normalisation
-src/routes/     one file per tab
-server/         the production server and the shared proxy table
-docs/           architecture, endpoints, privacy, development
+src/routes/     the component behind each tab
+src/server/     the proxy target table and the CORS rules
+public/sw.js    the service worker: shell and images only, never a price
+docs/           architecture, endpoints, deployment, privacy, development
 ```
 
-React 19, Vite 8, TypeScript, TanStack Query, zustand, `vite-plugin-pwa`. No UI
-framework: about 700 lines of CSS with design tokens, RTL, light and dark from
-the system, and a bottom bar on phones that becomes a top bar on laptops.
+Next.js 16 (App Router, standalone output), React 19, TypeScript, TanStack
+Query, zustand. No UI framework: about 700 lines of CSS with design tokens, RTL,
+light and dark from the system, and a bottom bar on phones that becomes a top
+bar on laptops. No database, no accounts of its own, no secrets to set.
 
 ## Contributing
 

@@ -1,4 +1,7 @@
-import { NavLink } from 'react-router';
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { PLATFORMS } from '../store/auth';
 import { useSettings } from '../store/settings';
 
@@ -33,6 +36,7 @@ const icons = {
 };
 
 export default function BottomNav() {
+  const pathname = usePathname();
   const sessions = useSettings((state) => state.sessions);
   const missing = PLATFORMS.filter(
     (platform) => platform.required && !sessions[platform.id]?.accessToken,
@@ -40,15 +44,15 @@ export default function BottomNav() {
 
   return (
     <nav className="bottom-nav" aria-label="ناوبری اصلی">
-      <NavLink to="/" end>
+      <Link href="/" className={pathname === '/' ? 'active' : undefined}>
         {icons.deals}
         <span>تخفیف‌ها</span>
-      </NavLink>
-      <NavLink to="/search">
+      </Link>
+      <Link href="/search" className={pathname === '/search' ? 'active' : undefined}>
         {icons.search}
         <span>جستجو</span>
-      </NavLink>
-      <NavLink to="/accounts">
+      </Link>
+      <Link href="/accounts" className={pathname === '/accounts' ? 'active' : undefined}>
         {icons.accounts}
         <span>حساب‌ها</span>
         {missing > 0 && (
@@ -56,11 +60,11 @@ export default function BottomNav() {
             {missing}
           </span>
         )}
-      </NavLink>
-      <NavLink to="/settings">
+      </Link>
+      <Link href="/settings" className={pathname === '/settings' ? 'active' : undefined}>
         {icons.settings}
         <span>تنظیمات</span>
-      </NavLink>
+      </Link>
     </nav>
   );
 }

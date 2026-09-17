@@ -25,7 +25,7 @@ a web page has no such exemption.
 
 You can, but the proxy is on the path, so you would be trusting whoever runs it
 with the same session your browser holds. Running your own is one command:
-`docker run -p 4173:4173 ghcr.io/amiranmanesh/discount-hunter:latest`.
+`docker run -p 3000:3000 ghcr.io/amiranmanesh/discount-hunter:latest`.
 
 ### Why did a 99% discount disappear?
 

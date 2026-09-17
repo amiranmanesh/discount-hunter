@@ -6,27 +6,55 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-09-17
+
+Rebuilt on Next.js. The app and its proxy were always two halves of one thing;
+now they are one server, and that removes every setting that used to depend on
+where the app was deployed.
+
+### Changed
+
+- **The app is a Next.js 16 server (App Router), not a Vite bundle.** The page
+  and `/api/<platform>/*` are served by the same process, so every API call is
+  same-origin by construction. There is no origin, base path, API base or
+  callback URL to configure: the same image works on `localhost`, on a personal
+  domain and behind any reverse proxy, with nothing set.
+- The proxy moved from `server/index.mjs` to
+  `app/api/[platform]/[...path]/route.ts`, in TypeScript, with the target table
+  and the CORS rules beside it in `src/server/`.
+- Routing moved from `react-router` to the App Router; each tab is a folder
+  under `app/`, and `react-router` is gone as a dependency.
+- The Docker image is the Next.js standalone build — still one process, still
+  no state to persist, now on port **3000** instead of 4173, with its health
+  check at **`/api/health`** instead of `/healthz`.
+- Persisted settings and sessions now hydrate in an effect rather than while the
+  store is created, so the server-rendered markup and the first client render
+  match.
+- Development and production are the same command on the same port: `npm run
+dev` and `npm start` both serve the app and the proxy on `:3000`.
+
 ### Added
 
-- **The server can be the proxy for an app hosted elsewhere.** `ALLOWED_ORIGINS`
-  makes the same Docker image answer `/api/*` for a build on GitHub Pages, so a
-  static deployment needs no Cloudflare and no third party — just the image you
-  already publish, on a host you already have.
-- **The app can be deployed to a static host.** `VITE_API_BASE` points it at a
-  proxy on another origin and `VITE_BASE` at the sub-path it is served from, so
-  GitHub Pages can host the built app rather than only a landing page.
-  `worker/` is the same pass-through as `server/index.mjs`, as a Cloudflare
-  Worker: route `yourdomain/api/*` to it and there is no CORS at all, or give it
-  its own origin and list the app's in `ALLOWED_ORIGINS`.
-  [`docs/HOSTING.md`](docs/HOSTING.md) has the measurements and the trade-offs.
-- The Pages workflow now builds and deploys the app itself. The project page
-  keeps its URL under `/about/`.
+- `.env.example`, and a full variable table in
+  [`docs/DEPLOY.md`](docs/DEPLOY.md), including which values are read at build
+  time and which at runtime. Every one of them is optional.
+- Reverse-proxy blocks for nginx, Caddy and Traefik, for bringing the app up on
+  your own domain.
+- `skipTrailingSlashRedirect`, because several upstream endpoints
+  (`/user/login-register/`, `/address/`, `/products/search/all/`) mean something
+  different without their trailing slash, and a proxy must forward the path it
+  was given.
 
-### Fixed
+### Removed
 
-- A request to an API base with no proxy behind it used to fail on the host's
-  own 404 page with an unreadable parse error. It now says which base did not
-  answer and points at the hosting guide.
+- **GitHub Pages hosting and the Cloudflare Worker.** A static build could only
+  ever work by pointing at a proxy somewhere else, which meant two deployments,
+  a CORS allow-list and a build-time URL to keep in sync. One server needs none
+  of it. `VITE_API_BASE` and `VITE_BASE` are gone; `NEXT_PUBLIC_API_BASE`
+  remains for the rare case of hosting the UI apart from its proxy.
+- `vite`, `vite-plugin-pwa` and `react-router`. The service worker is now a
+  single readable file in `public/sw.js` that caches the shell and product
+  images and never touches `/api`.
 
 ## [2.1.0] — 2026-09-04
 

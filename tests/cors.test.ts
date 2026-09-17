@@ -1,5 +1,4 @@
-// @ts-expect-error — plain ESM shared by the Node server and the Worker.
-import { corsHeaders, parseAllowedOrigins, resolveOrigin } from '../server/cors.mjs';
+import { corsHeaders, parseAllowedOrigins, resolveOrigin } from '../src/server/cors';
 import { describe, expect, it } from 'vitest';
 
 describe('parseAllowedOrigins', () => {
@@ -18,12 +17,10 @@ describe('parseAllowedOrigins', () => {
 });
 
 describe('resolveOrigin', () => {
-  const allowed = ['https://amiranmanesh.github.io'];
+  const allowed = ['https://hunter.example.ir'];
 
   it('echoes an origin that is on the list', () => {
-    expect(resolveOrigin('https://amiranmanesh.github.io', allowed)).toBe(
-      'https://amiranmanesh.github.io',
-    );
+    expect(resolveOrigin('https://hunter.example.ir', allowed)).toBe('https://hunter.example.ir');
   });
 
   it('ignores one that is not', () => {
@@ -41,9 +38,7 @@ describe('resolveOrigin', () => {
   });
 
   it('matches regardless of a trailing slash', () => {
-    expect(resolveOrigin('https://amiranmanesh.github.io/', allowed)).toBe(
-      'https://amiranmanesh.github.io',
-    );
+    expect(resolveOrigin('https://hunter.example.ir/', allowed)).toBe('https://hunter.example.ir');
   });
 });
 

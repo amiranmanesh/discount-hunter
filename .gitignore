@@ -1,14 +1,20 @@
 node_modules/
-dist/
-dev-dist/
+.next/
+next-env.d.ts
 coverage/
 *.log
+*.tsbuildinfo
 .DS_Store
 .vscode/
 .idea/
 .claude/
 .agents/
 .preview/
+
+# Local overrides. `.env.example` is the documented one and is committed.
+.env
+.env.*
+!.env.example
 
 # Captured API traffic and driven-browser profiles. Every line of a capture
 # carries whatever credentials the site sent, so these never leave the machine.

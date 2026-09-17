@@ -53,6 +53,13 @@ export const useSettings = create<State>()(
     {
       name: 'discount-hunter',
       version: 2,
+      // The server renders this page with the empty state above, because it has
+      // no access to the browser's storage. Reading the stored state during the
+      // first client render would therefore produce different markup than the
+      // server sent, which React refuses to reconcile. So hydration is deferred
+      // to an effect — `Providers` calls `rehydrate()` right after mount — and
+      // the first paint matches the server exactly.
+      skipHydration: true,
       // A stored state from before a platform existed has no entry for it, and
       // an absent flag must not read as "off".
       migrate: (persisted) => {

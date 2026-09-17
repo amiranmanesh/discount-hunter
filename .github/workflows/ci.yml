@@ -49,12 +49,6 @@ jobs:
           npm run icons
           git diff --exit-code -- public/icons
 
-      - uses: actions/upload-artifact@v7
-        with:
-          name: web-build
-          path: dist/
-          retention-days: 14
-
   image:
     name: Build the Docker image
     runs-on: ubuntu-latest
@@ -74,18 +68,31 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Boot it and check /healthz
+      - name: Boot it, then check the app and the proxy
         run: |
-          docker run -d --name check -p 4173:4173 discount-hunter:pr
-          for i in $(seq 1 20); do
-            if curl -fsS http://localhost:4173/healthz > /dev/null; then
+          docker run -d --name check -p 3000:3000 discount-hunter:pr
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/api/health > /dev/null; then
               echo "healthy after ${i}s"
-              curl -fsS http://localhost:4173/ | head -c 120
-              docker rm -f check
-              exit 0
+              break
+            fi
+            if [ "$i" = 30 ]; then
+              echo "the container never became healthy" >&2
+              docker logs check
+              exit 1
             fi
             sleep 1
           done
-          echo "the container never became healthy" >&2
-          docker logs check
-          exit 1
+
+          # The page renders...
+          curl -fsS http://localhost:3000/ | grep -q 'dir="rtl"'
+
+          # ...and the proxy route is mounted. It is answered by the handler,
+          # not by Next.js's own 404 page, which is what the message proves.
+          # The upstreams themselves are not called here: they refuse traffic
+          # from outside Iran, so a CI runner cannot tell a blocked request
+          # apart from a broken one.
+          curl -s http://localhost:3000/api/unknown-platform/whatever \
+            | grep -q 'سرویس ناشناخته'
+
+          docker rm -f check

@@ -71,12 +71,6 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/upload-artifact@v7
-        with:
-          name: web-build
-          path: dist/
-          retention-days: 14
-
   image:
     name: Build and publish the image
     needs: verify
@@ -133,11 +127,19 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Bundle the deployable files
+      # The standalone output is the whole deployable app: the traced server, its
+      # dependencies and the static assets. `node server.js` inside it is all a
+      # host needs — no npm install, no build step.
+      - name: Bundle the standalone server
         run: |
-          mkdir -p release
+          mkdir -p release/discount-hunter
+          cp -r .next/standalone/. release/discount-hunter/
+          mkdir -p release/discount-hunter/.next
+          cp -r .next/static release/discount-hunter/.next/static
+          cp -r public release/discount-hunter/public
           tar -czf "release/discount-hunter-${{ needs.verify.outputs.version }}.tar.gz" \
-            dist server package.json
+            -C release discount-hunter
+          rm -rf release/discount-hunter
           (cd release && sha256sum *.tar.gz > checksums.txt)
 
       - name: Take this version's notes out of the changelog
@@ -157,10 +159,10 @@ jobs:
           {
             echo
             echo '```bash'
-            echo "docker run -p 4173:4173 ghcr.io/${{ github.repository }}:$version"
+            echo "docker run -p 3000:3000 ghcr.io/${{ github.repository }}:$version"
             echo '```'
             echo
-            echo 'The tarball holds `dist/` and `server/`; run it with `node server/index.mjs`.'
+            echo 'The tarball holds the standalone server; run it with `node server.js`.'
             echo 'The app has to be served next to its proxy — see `docs/ARCHITECTURE.md`.'
           } >> notes.md
 

@@ -4,9 +4,9 @@
   <p><strong>همهٔ تخفیف‌های اسنپ‌مارکت، دیجی‌کالا جت و اوکالا در اطرافت، از بیشترین به کمترین — به‌صورت یک وب‌اپ نصب‌شدنی.</strong></p>
   <p><a href="README.md">English</a> · <strong>فارسی</strong></p>
   <p>
-    <a href="https://amiranmanesh.github.io/discount-hunter/">وب‌سایت</a> ·
     <a href="https://github.com/amiranmanesh/discount-hunter/wiki">ویکی</a> ·
     <a href="#اجرا">اجرا</a> ·
+    <a href="docs/DEPLOY.md">استقرار</a> ·
     <a href="docs/ARCHITECTURE.md">معماری</a> ·
     <a href="docs/API.md">اندپوینت‌ها</a> ·
     <a href="docs/PRIVACY.md">حریم خصوصی</a> ·
@@ -16,7 +16,7 @@
     <a href="https://github.com/amiranmanesh/discount-hunter/actions/workflows/release.yml"><img alt="Release" src="https://github.com/amiranmanesh/discount-hunter/actions/workflows/release.yml/badge.svg" /></a>
     <a href="https://github.com/amiranmanesh/discount-hunter/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/amiranmanesh/discount-hunter/actions/workflows/ci.yml/badge.svg" /></a>
     <a href="https://github.com/amiranmanesh/discount-hunter/pkgs/container/discount-hunter"><img alt="Container image" src="https://img.shields.io/badge/ghcr.io-discount--hunter-2496ed?logo=docker&logoColor=white" /></a>
-    <img alt="React 19" src="https://img.shields.io/badge/react-19-149eca" />
+    <img alt="Next.js 16" src="https://img.shields.io/badge/next.js-16-000000?logo=nextdotjs" />
     <img alt="PWA" src="https://img.shields.io/badge/PWA-installable-ff5f00" />
     <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue" /></a>
   </p>
@@ -58,7 +58,7 @@
 **با داکر، یک دستور:**
 
 ```bash
-docker run -p 4173:4173 ghcr.io/amiranmanesh/discount-hunter:latest
+docker run -p 3000:3000 ghcr.io/amiranmanesh/discount-hunter:latest
 ```
 
 یا `docker compose up -d` با [`compose.yaml`](compose.yaml) همین ریپو.
@@ -70,28 +70,32 @@ git clone https://github.com/amiranmanesh/discount-hunter.git
 cd discount-hunter
 npm ci
 npm run build
-npm start          # → http://localhost:4173
+npm start          # → http://localhost:3000
 ```
+
+`npm run dev` همین برنامه را روی همان پورت با hot reload بالا می‌آورد.
 
 روی موبایل در همان شبکه بازش کن و به صفحهٔ اصلی اضافه کن؛ مثل یک اپ مستقل نصب
 می‌شود.
 
-برای توسعه، `npm run dev` همین را روی ۵۱۷۳ با hot reload می‌دهد.
-
-**روی میزبان استاتیک؟** برنامه روی گیت‌هاب پیج هم بالا می‌آید، ولی نه به‌تنهایی:
-هیچ‌کدام از سه API اجازهٔ درخواست cross-origin نمی‌دهند، پس بیلد استاتیک به یک
-پروکسی نیاز دارد که اجازهٔ صحبت با آن را داشته باشد. `worker/` همان پروکسی است
-به‌شکل Cloudflare Worker — مسیر `yourdomain/api/*` را به آن بده و اصلاً CORS در
-کار نیست. اندازه‌گیری‌ها و سه حالت ممکن در
-[`docs/HOSTING.md`](docs/HOSTING.md).
+**روی دامنهٔ خودت**، پشت یک ریورس‌پروکسی بگذارش که TLS را تمام کند و همه‌چیز —
+از جمله `/api/*` — را به کانتینر بدهد. هیچ مبدأ، مسیر پایه یا آدرس بازگشتی‌ای
+برای تنظیم‌کردن وجود ندارد، چون صفحه و پروکسی‌اش یک سرور واحدند. بلوک‌های آمادهٔ
+nginx و Caddy و Traefik و فهرست کامل متغیرها (که همه‌شان اختیاری‌اند) در
+[`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ### چرا سرور لازم دارد
 
-هیچ‌کدام از دو پلتفرم درخواست cross-origin از مرورگر را قبول نمی‌کنند —
-اسنپ‌مارکت `Access-Control-Allow-Origin` را فقط برای سایت خودش می‌فرستد و
-دیجی‌کالا جت اصلاً نمی‌فرستد — پس صفحه نمی‌تواند مستقیم صدایشان بزند، هر کدی هم
-که بنویسی. برای همین برنامه همراه یک پروکسی سادهٔ هم‌مبدأ سرو می‌شود. پروکسی
-چیزی نگه نمی‌دارد، ولی سر راه است؛ پس خودت اجرایش کن —
+هیچ‌کدام از سه پلتفرم درخواست cross-origin از مرورگر را قبول نمی‌کنند —
+اسنپ‌مارکت `Access-Control-Allow-Origin` را فقط برای سایت خودش می‌فرستد،
+دیجی‌کالا جت اصلاً نمی‌فرستد و اوکالا در پاسخ واقعی حذفش می‌کند — پس صفحه
+نمی‌تواند مستقیم صدایشان بزند، هر کدی هم که بنویسی. برای همین برنامه یک سرور
+Next.js است: همان پراسسی که صفحه را رندر می‌کند، `/api/*` را هم از سمت سرور
+فوروارد می‌کند، جایی که اصلاً قاعدهٔ cross-origin معنا ندارد. دقیقاً به همین دلیل
+روی `localhost`، روی دامنهٔ شخصی و پشت هر ریورس‌پروکسی‌ای بدون یک خط تنظیمات کار
+می‌کند.
+
+پروکسی چیزی نگه نمی‌دارد، ولی سر راه است؛ پس خودت اجرایش کن —
 [docs/PRIVACY.md](docs/PRIVACY.md) صریح دربارهٔ این معامله نوشته.
 
 ## ورود به حساب
@@ -119,17 +123,21 @@ npm start          # → http://localhost:4173
 ## ساختار
 
 ```
+app/            روتر اپ: پوستهٔ برنامه و یک پوشه برای هر تب
+app/api/        پروکسی عبوری و health check — سمت سرور
 src/api/        یک کلاینت برای هر پلتفرم؛ هرچه با شبکه کار دارد
 src/core/       فید، جستجو، رتبه‌بندی، تطبیق فارسی — همه بدون I/O
 src/auth/       نشست، محدودیت نرخ OTP، نرمال‌سازی شماره
-src/routes/     یک فایل برای هر تب
-server/         سرور پروداکشن و جدول مشترک پروکسی
-docs/           معماری، اندپوینت‌ها، حریم خصوصی، توسعه
+src/routes/     کامپوننت پشت هر تب
+src/server/     جدول مقصدهای پروکسی و قواعد CORS
+public/sw.js    سرویس‌ورکر: فقط پوسته و تصویر، هرگز قیمت
+docs/           معماری، اندپوینت‌ها، استقرار، حریم خصوصی، توسعه
 ```
 
-React 19، Vite 8، TypeScript، TanStack Query، zustand و `vite-plugin-pwa`. بدون
-فریم‌ورک UI: حدود ۷۰۰ خط CSS با توکن‌های طراحی، RTL، تم روشن و تیره از سیستم، و
-نوار پایینی روی موبایل که روی لپ‌تاپ به نوار بالایی تبدیل می‌شود.
+Next.js 16 (App Router با خروجی standalone)، React 19، TypeScript، TanStack
+Query و zustand. بدون فریم‌ورک UI: حدود ۷۰۰ خط CSS با توکن‌های طراحی، RTL، تم
+روشن و تیره از سیستم، و نوار پایینی روی موبایل که روی لپ‌تاپ به نوار بالایی
+تبدیل می‌شود. بدون دیتابیس، بدون حساب کاربری اختصاصی و بدون هیچ کلید مخفی.
 
 ## مشارکت
 

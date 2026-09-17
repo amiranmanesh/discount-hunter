@@ -1,54 +1,78 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
 
-# The app cannot be hosted as static files: neither Snapp Market nor Digikala Jet
-# allows a cross-origin browser request, so the bundle has to be served next to
-# the proxy that fronts them. That is what this image is — one process serving
-# `dist/` and forwarding `/api/*`.
+# One image, one process: the Next.js server that renders the app *and* forwards
+# `/api/*` to Snapp Market, Digikala Jet and Okala.
+#
+# The two cannot be separated. None of the three platforms allows a cross-origin
+# browser request, so the page and its proxy have to answer on the same origin —
+# which is also why this image works unchanged on localhost, on a personal
+# domain, and behind any reverse proxy: there is no origin to configure.
+#
+# Both images are build arguments so a build on a restricted network can pull
+# from a mirror, e.g.
+#   docker build --build-arg NODE_IMAGE=hub.hamdocker.ir/node:22-alpine \
+#                --build-arg NPM_REGISTRY=https://registry.npmmirror.com .
+ARG NODE_IMAGE=node:22-alpine
 
-# ---------------------------------------------------------------- build ----
-FROM node:22-alpine AS build
-
+# ---------------------------------------------------------------- base -----
+FROM ${NODE_IMAGE} AS base
 WORKDIR /app
 
-# Dependencies first, so a source-only change does not reinstall them.
-COPY package.json package-lock.json .npmrc ./
-RUN npm ci
+ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY tsconfig*.json vite.config.ts index.html ./
-COPY public ./public
-COPY src ./src
-COPY server ./server
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ENV npm_config_registry=${NPM_REGISTRY}
+
+# ------------------------------------------------------- dependencies ------
+# Split from the build so a source-only change does not reinstall anything.
+FROM base AS dependencies
+COPY package.json package-lock.json .npmrc ./
+RUN --mount=type=cache,id=discount-hunter-npm,target=/root/.npm \
+    npm ci --no-audit --no-fund
+
+# ------------------------------------------------------------- build -------
+FROM base AS build
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY . .
+
+# The only build-time variable this app has, and it is almost always empty:
+# `/api` on its own origin is the default and what every normal deploy uses.
+# It is inlined into the bundle, so it cannot be changed at runtime.
+ARG NEXT_PUBLIC_API_BASE=""
+ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
 
 RUN npm run build
 
-# -------------------------------------------------------------- runtime ----
-FROM node:22-alpine AS runtime
+# ----------------------------------------------------------- runtime -------
+# `output: 'standalone'` traces every module the server actually needs into
+# `.next/standalone`, so this stage carries no `node_modules` of its own.
+FROM ${NODE_IMAGE} AS runtime
 
-# These are what tie the published package to the repository on GitHub, and what
-# fills in its description and licence on the Packages page.
 LABEL org.opencontainers.image.source="https://github.com/amiranmanesh/discount-hunter" \
-      org.opencontainers.image.url="https://amiranmanesh.github.io/discount-hunter/" \
       org.opencontainers.image.documentation="https://github.com/amiranmanesh/discount-hunter/blob/main/docs/DEPLOY.md" \
       org.opencontainers.image.title="Discount Hunter" \
-      org.opencontainers.image.description="Every Snapp Market and Digikala Jet discount near you, deepest first." \
+      org.opencontainers.image.description="Every Snapp Market, Digikala Jet and Okala discount near you, deepest first." \
       org.opencontainers.image.licenses="MIT"
-
-ENV NODE_ENV=production \
-    PORT=4173 \
-    HOST=0.0.0.0
 
 WORKDIR /app
 
-# The server uses only Node built-ins, so the runtime image carries no
-# node_modules at all — just the bundle, the server, and `"type": "module"`.
-COPY --from=build /app/dist ./dist
-COPY server ./server
-COPY package.json ./package.json
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    # Docker sets HOSTNAME to the container id, and the standalone server would
+    # bind to that name and become unreachable. Pin the bind address.
+    HOSTNAME=0.0.0.0
+
+COPY --from=build --chown=node:node /app/public ./public
+COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next/static ./.next/static
 
 USER node
-EXPOSE 4173
+EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||4173)+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+# Reports on this process only — never on whether Snapp Market happens to be up,
+# so an upstream outage can never cause a restart loop.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["node", "server/index.mjs"]
+CMD ["node", "server.js"]

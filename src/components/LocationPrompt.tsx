@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import Link from 'next/link';
 
 export default function LocationPrompt() {
   return (
@@ -7,7 +7,7 @@ export default function LocationPrompt() {
       <p className="muted" style={{ margin: 0 }}>
         هر قیمت و هزینهٔ ارسالی به جایی که هستی بستگی دارد، پس بدون آن چیزی برای نشان دادن نیست.
       </p>
-      <Link className="button button--primary" to="/settings">
+      <Link className="button button--primary" href="/settings">
         انتخاب موقعیت
       </Link>
     </div>

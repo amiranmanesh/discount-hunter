@@ -1,9 +1,12 @@
 node_modules/
-dist/
-dev-dist/
+.next/
+next-env.d.ts
 coverage/
+package-lock.json
 *.log
 .DS_Store
 .vscode/
 .idea/
 .claude/
+.agents/
+.preview/

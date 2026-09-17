@@ -25,10 +25,14 @@ const LOCATION = {
 
 mkdirSync(OUT, { recursive: true });
 
-const server = spawn('node', [path.join(ROOT, 'server/index.mjs')], {
-  env: { ...process.env, PORT },
-  stdio: 'ignore',
-});
+// The production server, the same one the image runs: `next start` over the
+// build in `.next/`. It serves the app and the `/api` proxy together, so the
+// rendered pages are the real thing rather than a mock.
+const server = spawn(
+  process.platform === 'win32' ? 'npx.cmd' : 'npx',
+  ['next', 'start', '--port', PORT],
+  { cwd: ROOT, env: { ...process.env, PORT }, stdio: 'ignore' },
+);
 await new Promise((resolve) => setTimeout(resolve, 2500));
 
 const browser = await chromium.launch({ headless: false });

@@ -1,17 +1,33 @@
+# Keep this a deny list: the build needs the whole source tree (app, src,
+# public, scripts, configs).
 node_modules
+.next
 dist
-dev-dist
 coverage
 .git
 .github
 .preview
 .claude
 .agents
+
+# Secrets and local overrides never enter an image layer.
+.env
+.env.*
+!.env.example
+
+# Not needed to build or run the server.
 tests
 docs
+wiki
 *.md
 .editorconfig
 .prettier*
-eslint.config.js
-vitest.config.ts
+vitest.config.mts
+compose.yaml
 scripts/preview.mjs
+scripts/recon.mjs
+
+# Captured API traffic and driven-browser profiles: every line carries whatever
+# credentials the site sent.
+probe-out
+.browser-profile

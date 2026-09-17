@@ -1,4 +1,4 @@
-// Every request goes through a proxy this project controls.
+// Every request goes through this app's own server.
 //
 // None of the three platforms sends `Access-Control-Allow-Origin` on a real
 // response for any origin but its own website — measured, not assumed: Snapp
@@ -7,15 +7,16 @@
 // response itself, which a browser treats as a refusal all the same. So no
 // amount of client-side code can call them from a page on another origin.
 //
-// `VITE_API_BASE` says where that proxy lives:
+// The Next.js route handler at `/api/<platform>/*` forwards the call instead,
+// which is not a browser request and so has no origin to be refused. Because it
+// is served by the same process as the page, this holds on `localhost`, on a
+// personal domain, and behind any reverse proxy, with nothing to configure.
 //
-//   unset            `/api` — same origin, which is what `npm start` and the
-//                    Docker image serve, and what the dev server proxies.
-//   an absolute URL  a proxy on another origin, for a static host such as
-//                    GitHub Pages. It has to allow this app's origin back.
-//
-// See docs/HOSTING.md.
-const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/$/, '');
+// `NEXT_PUBLIC_API_BASE` only exists for the unusual case of pointing the UI at
+// a proxy that is not its own server — another deployment of this app, say. It
+// is baked into the bundle at build time, so it is a build argument, not a
+// runtime one, and is normally left unset. See docs/HOSTING.md.
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? '/api').replace(/\/$/, '');
 
 export const SNAPP_BASE = `${API_BASE}/snapp`;
 export const JET_BASE = `${API_BASE}/jet`;
@@ -115,8 +116,8 @@ export async function request<T>(
   // actually went wrong instead of passing that on.
   if (json === null) {
     throw new ApiError(
-      `پروکسی در ${API_BASE} پاسخ درستی نداد. اگر برنامه روی میزبان استاتیک بالاست، ` +
-        'باید VITE_API_BASE به یک پروکسی اشاره کند — docs/HOSTING.md',
+      `پروکسی در ${API_BASE} پاسخ درستی نداد. اگر برنامه پشت یک وب‌سرور دیگر بالاست، ` +
+        'مسیر /api باید بدون تغییر به همین سرور برسد — docs/HOSTING.md',
       { status: response.status },
     );
   }
