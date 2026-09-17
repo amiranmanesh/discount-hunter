@@ -6,6 +6,30 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-09-17
+
+### Changed
+
+- **The phone number is asked for once, not once per platform.** It now sits at
+  the top of **حساب‌ها** and every card signs in with it; each platform still
+  sends its own code, because the accounts really are separate, but nothing is
+  retyped. The number is kept on the device with the rest of the settings, and
+  editing it clears any code already sent for the old one.
+
+### Fixed
+
+- **A number typed on a Persian or Arabic keyboard now works.** `۰۹۱۲…` and
+  `٠٩١٢…` are not the ASCII digits any of the three platforms accept, so such a
+  number was refused upstream as invalid — which read as the app being broken
+  rather than the keyboard being the wrong one. Both fields now hold ASCII
+  digits and nothing else: Persian and Arabic digits are converted as they are
+  typed, and everything that is not a digit is dropped, so a pasted
+  `+98 912-345 6789` also lands correctly.
+- Neither field carries a `maxLength` any more. The attribute truncates the raw
+  text _before_ it can be filtered, so pasting `+98 912-345 6789` was cut to
+  thirteen characters of punctuation and became the wrong number. The cap now
+  lives where the filtering does.
+
 ## [3.0.2] — 2026-09-17
 
 ### Fixed

@@ -720,3 +720,18 @@ a {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+/*
+ * A phone number and an SMS code are Latin digits inside a right-to-left page.
+ * Left-to-right keeps the caret and the digit order where the user expects
+ * them, and tabular figures stop the field from reflowing as it fills.
+ */
+.input--digits {
+  direction: ltr;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.code-input.input--digits {
+  text-align: center;
+}

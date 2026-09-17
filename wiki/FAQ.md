@@ -9,6 +9,8 @@ search takes no token, and signing in only adds that account's saved addresses.
 ### Does it see my password?
 
 No. It signs in the way the websites do: your phone number, then the SMS code.
+The number is entered once and shared by all three sign-ins; each platform still
+texts its own code.
 What it holds afterwards is a session token, kept in your browser and sent only
 to the platform it came from.
 

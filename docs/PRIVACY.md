@@ -6,12 +6,15 @@ Everything is kept in your browser's `localStorage`, on your device:
 
 | Stored                  | Why                                                      |
 | ----------------------- | -------------------------------------------------------- |
+| Your phone number       | So it is typed once rather than once per platform        |
 | Delivery point          | Every price and delivery fee depends on where you are    |
 | Filters and sort mode   | So the app opens the way you left it                     |
 | Recent searches         | Search history, capped at eight                          |
 | Session tokens          | Sent to the platform they came from, so prices are yours |
 | OTP rate-limit counters | So the app cannot get your number throttled              |
 
+The number is kept only to fill the field in again; it is sent nowhere except to
+the platform you are signing in to, which is about to text it a code anyway.
 Clearing site data removes all of it. There is no account with us, because there
 is no us — no analytics, no telemetry, no third-party script.
 

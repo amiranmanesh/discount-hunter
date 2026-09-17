@@ -6,6 +6,12 @@ import { emptyLimit } from '../auth/backoff';
 import type { Session } from '../auth/session';
 
 export interface Settings {
+  /**
+   * The one phone number all three sign-ins use. Kept here so it is typed once
+   * rather than three times — the accounts are separate, the number is not.
+   * It stays on this device, exactly like the sessions below.
+   */
+  phone: string;
   location: Location | null;
   sortMode: SortMode;
   sources: Record<PlatformId, boolean>;
@@ -29,6 +35,7 @@ interface State extends Settings {
 export const useSettings = create<State>()(
   persist(
     (set) => ({
+      phone: '',
       location: null,
       sortMode: 'best-discount',
       sources: { snapp: true, jet: true, okala: true },
@@ -52,7 +59,9 @@ export const useSettings = create<State>()(
     }),
     {
       name: 'discount-hunter',
-      version: 2,
+      // 3 adds the shared phone number; the migration below fills it in for a
+      // state written before it existed.
+      version: 3,
       // The server renders this page with the empty state above, because it has
       // no access to the browser's storage. Reading the stored state during the
       // first client render would therefore produce different markup than the
@@ -66,6 +75,9 @@ export const useSettings = create<State>()(
         const state = (persisted ?? {}) as Partial<State>;
         return {
           ...state,
+          // Stored before there was a shared number: start empty rather than
+          // undefined, which a controlled input would read as uncontrolled.
+          phone: state.phone ?? '',
           sources: { snapp: true, jet: true, okala: true, ...(state.sources ?? {}) },
           limits: {
             snapp: emptyLimit(),
@@ -80,6 +92,7 @@ export const useSettings = create<State>()(
       // browser app; they are the user's own session and never leave the device
       // except to the platform they came from.
       partialize: (state) => ({
+        phone: state.phone,
         location: state.location,
         sortMode: state.sortMode,
         sources: state.sources,

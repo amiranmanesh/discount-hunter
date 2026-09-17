@@ -68,8 +68,12 @@ upstream. Full table:
 
 ## Sign in
 
-Open **حساب‌ها** and sign in with your phone number and the SMS code, one platform
-at a time.
+Open **حساب‌ها**, type your phone number once at the top of the page, then enter
+the SMS code for each platform you want. The accounts are separate; the number is
+shared, so you type it once.
+
+Both fields accept Latin digits only — a number typed on a Persian or Arabic
+keyboard is converted as you type.
 
 | Platform         | Sign-in                | What the token is for             |
 | ---------------- | ---------------------- | --------------------------------- |

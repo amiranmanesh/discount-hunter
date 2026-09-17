@@ -99,7 +99,13 @@ The proxy keeps nothing, but it is on the path, so run your own:
 
 ## Sign in
 
-**حساب‌ها** → phone number → SMS code, one platform at a time.
+**حساب‌ها** → your phone number once, at the top of the page → then an SMS code
+per platform. The accounts are separate; the number is not, so it is asked for
+once and every card signs in with it.
+
+Both fields take Latin digits only. A number typed on a Persian or Arabic
+keyboard (`۰۹۱۲…`) is converted as you type, rather than being sent upstream and
+refused as invalid.
 
 | Platform         | Sign-in                  | What it needs a token for         |
 | ---------------- | ------------------------ | --------------------------------- |
