@@ -38,8 +38,14 @@ COPY . .
 # The only build-time variable this app has, and it is almost always empty:
 # `/api` on its own origin is the default and what every normal deploy uses.
 # It is inlined into the bundle, so it cannot be changed at runtime.
-ARG NEXT_PUBLIC_API_BASE=""
-ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
+#
+# It is passed as a build argument rather than promoted to ENV on purpose. An
+# `ENV` here would define it as the empty string on every build, and `''` is not
+# the same as unset to code reading `process.env` — that is exactly how the
+# published image once shipped with a base of `''`, sending every call to
+# `/jet/...` instead of `/api/jet/...`. `resolveApiBase` now treats empty as
+# unset as well, and this keeps the variable absent in the first place.
+ARG NEXT_PUBLIC_API_BASE
 
 RUN npm run build
 

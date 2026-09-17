@@ -95,4 +95,30 @@ jobs:
           curl -s http://localhost:3000/api/unknown-platform/whatever \
             | grep -q 'سرویس ناشناخته'
 
+          # ...and the *shipped bundle* calls that route. Checking the route by
+          # hand is not enough: an image once went out with an API base of `''`,
+          # which sent every call to `/jet/...` instead of `/api/jet/...`. The
+          # route was fine; the client asking for it was not.
+          chunks="$(curl -s http://localhost:3000/accounts \
+            | grep -oE '/_next/static/chunks/[a-z0-9_.-]+\.js' | sort -u)"
+          base_ok=0
+          for chunk in $chunks; do
+            body="$(curl -s "http://localhost:3000$chunk")"
+            case "$body" in
+              *'/api/snapp'*) base_ok=1 ;;
+            esac
+            # The exact shape the broken build had.
+            case "$body" in
+              *'let t="".replace'*)
+                echo "the bundle carries an empty API base" >&2
+                exit 1
+                ;;
+            esac
+          done
+          if [ "$base_ok" != 1 ]; then
+            echo "no chunk builds its requests on /api — the client would 404" >&2
+            exit 1
+          fi
+          echo "the bundle calls /api on its own origin"
+
           docker rm -f check

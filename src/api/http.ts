@@ -16,7 +16,18 @@
 // a proxy that is not its own server — another deployment of this app, say. It
 // is baked into the bundle at build time, so it is a build argument, not a
 // runtime one, and is normally left unset. See docs/HOSTING.md.
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? '/api').replace(/\/$/, '');
+export function resolveApiBase(configured: string | undefined): string {
+  // An empty value is how "not configured" arrives in practice: a Dockerfile
+  // that declares the variable with no default, a CI secret that resolves to
+  // nothing, a `.env` line with nothing after the `=`. Reading that as a base
+  // of `''` sends every call to `/jet/...` instead of `/api/jet/...`, which the
+  // app's own server answers with its 404 page — so an empty value has to mean
+  // the default, not the empty string.
+  const trimmed = configured?.trim();
+  return (trimmed || '/api').replace(/\/$/, '');
+}
+
+const API_BASE = resolveApiBase(process.env.NEXT_PUBLIC_API_BASE);
 
 export const SNAPP_BASE = `${API_BASE}/snapp`;
 export const JET_BASE = `${API_BASE}/jet`;

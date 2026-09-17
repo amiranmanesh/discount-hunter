@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.0.2] — 2026-09-17
+
+### Fixed
+
+- **Every API call from the published image went to the wrong path.** The
+  Dockerfile declared `NEXT_PUBLIC_API_BASE` with an empty default and promoted
+  it to `ENV`, so the build saw the variable as `''` rather than as unset. The
+  client read it with `??`, which falls back only on `undefined`, and shipped a
+  bundle whose base was the empty string: `let t = "".replace(...)`. Every
+  request then went to `/jet/...` and `/okala/...` instead of `/api/jet/...`,
+  and the app's own 404 page answered them. Measured against the published
+  image, a seeded feed rendered 0 offers with two 404s; the same page on the
+  fixed build renders 152, every call 200.
+
+  It never showed up in development, where the variable is genuinely unset —
+  which is exactly why the deployed site failed while `npm run dev` did not.
+
+  `resolveApiBase` now treats an empty or blank value as unset, the Dockerfile
+  keeps the variable absent instead of empty, and CI reads the base out of the
+  bundle the image actually serves. Checking the `/api` route by hand, which is
+  what CI did before, could never have caught this: the route was always fine —
+  the client asking for it was not.
+
 ## [3.0.1] — 2026-09-17
 
 ### Fixed

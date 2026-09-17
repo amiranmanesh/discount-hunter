@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { request } from '../src/api/http';
+import { request, resolveApiBase } from '../src/api/http';
 
 function respond(body: unknown, init: { status?: number; contentType?: string } = {}) {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValue({
@@ -52,5 +52,24 @@ describe('request', () => {
       status: 429,
       retryAfter: 120,
     });
+  });
+});
+
+describe('resolveApiBase', () => {
+  it("defaults to the app's own /api", () => {
+    expect(resolveApiBase(undefined)).toBe('/api');
+  });
+
+  // The regression this exists for: a Dockerfile that declared the variable
+  // with an empty default shipped a bundle whose base was `''`, so every call
+  // went to `/jet/...` rather than `/api/jet/...` and the app answered its own
+  // 404 page. An empty value means "not configured", never "the root".
+  it('treats an empty or blank value as unset, not as the root', () => {
+    expect(resolveApiBase('')).toBe('/api');
+    expect(resolveApiBase('   ')).toBe('/api');
+  });
+
+  it('keeps a configured proxy, without its trailing slash', () => {
+    expect(resolveApiBase('https://proxy.example.ir/api/')).toBe('https://proxy.example.ir/api');
   });
 });
