@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.2.0] — 2026-09-18
+
 ### Added
 
 - **سبد — a basket, and the cheapest way to buy it.** Add products with
