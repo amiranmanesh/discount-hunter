@@ -26,6 +26,8 @@ export interface DealsOptions {
   sources: Record<PlatformId, boolean>;
   minDiscount: number;
   onlyOpen: boolean;
+  /** The Snapp Market account has Snapp Pro, so Pro stores' discounted fees apply. */
+  snappPro?: boolean;
 }
 
 /** Jet pages are five rows deep, so several are pulled per feed page. */
@@ -56,7 +58,7 @@ export async function dealsPage(
   if (options.sources.snapp && snappToken) {
     jobs.push(
       snapp
-        .campaignPage(snappToken, location, page)
+        .campaignPage(snappToken, location, page, 20, { pro: options.snappPro })
         .then((result) => {
           collected.push(...result.offers);
           firstOrderSkipped += result.firstOrderSkipped;

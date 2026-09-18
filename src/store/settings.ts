@@ -19,6 +19,12 @@ export interface Settings {
   onlyOpen: boolean;
   minDiscount: number;
   recentQueries: string[];
+  /**
+   * The Snapp Market account has a Snapp Pro subscription. Pro stores deliver
+   * at a discounted fee only to those who have one, so without it every fee is
+   * quoted in full.
+   */
+  snappPro: boolean;
 }
 
 interface State extends Settings {
@@ -43,6 +49,7 @@ export const useSettings = create<State>()(
       onlyOpen: true,
       minDiscount: 0,
       recentQueries: [],
+      snappPro: false,
       sessions: { snapp: null, jet: null, okala: null },
       limits: { snapp: emptyLimit(), jet: emptyLimit(), okala: emptyLimit() },
 
@@ -59,9 +66,9 @@ export const useSettings = create<State>()(
     }),
     {
       name: 'discount-hunter',
-      // 3 adds the shared phone number; the migration below fills it in for a
-      // state written before it existed.
-      version: 3,
+      // 3 adds the shared phone number and 4 the Snapp Pro flag; the migration
+      // below fills both in for a state written before they existed.
+      version: 4,
       // The server renders this page with the empty state above, because it has
       // no access to the browser's storage. Reading the stored state during the
       // first client render would therefore produce different markup than the
@@ -78,6 +85,7 @@ export const useSettings = create<State>()(
           // Stored before there was a shared number: start empty rather than
           // undefined, which a controlled input would read as uncontrolled.
           phone: state.phone ?? '',
+          snappPro: state.snappPro ?? false,
           sources: { snapp: true, jet: true, okala: true, ...(state.sources ?? {}) },
           limits: {
             snapp: emptyLimit(),
@@ -100,6 +108,7 @@ export const useSettings = create<State>()(
         onlyOpen: state.onlyOpen,
         minDiscount: state.minDiscount,
         recentQueries: state.recentQueries,
+        snappPro: state.snappPro,
         sessions: state.sessions,
         limits: state.limits,
       }),

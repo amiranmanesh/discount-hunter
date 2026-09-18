@@ -13,13 +13,13 @@
  *                         so a cached one can never be the wrong version
  *   3. product images     cache first, trimmed, from the two image CDNs
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL_CACHE = `shell-${VERSION}`;
 const ASSET_CACHE = `assets-${VERSION}`;
 const IMAGE_CACHE = `images-${VERSION}`;
 const IMAGE_LIMIT = 300;
 
-const SHELL_URLS = ['/', '/search', '/accounts', '/settings', '/manifest.webmanifest'];
+const SHELL_URLS = ['/', '/search', '/basket', '/accounts', '/settings', '/manifest.webmanifest'];
 
 const IMAGE_HOSTS = [
   /^https:\/\/(static|cdn)\.snapp\.express$/i,

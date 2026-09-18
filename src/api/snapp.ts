@@ -187,6 +187,7 @@ export function toOffer(product: RawProduct, vendor: Vendor): Offer {
     platform: 'snapp',
     platformLabel: 'اسنپ‌مارکت',
     productId: String(product.productVariationId ?? ''),
+    catalogId: String(product.productVariationId ?? ''),
     title: product.productVariationTitle || product.title || '',
     image: product.main_image || product.image || '',
     category: product.menu_category_title || '',
@@ -225,21 +226,25 @@ export async function campaignPage(
   location: Location,
   page: number,
   pageSize = 20,
+  { pro = false }: FeeOptions = {},
 ): Promise<CampaignPage> {
-  const json = await request<{ data?: { total_count?: number; vendors?: RawVendor[] } }>(
-    SNAPP_BASE,
-    `/market-party/${location.lat}/${location.lng}`,
-    {
-      token,
-      query: {
-        deal_type: 'supermarket',
-        isPro: 'false',
-        page: String(page),
-        page_size: String(pageSize),
-        ...common(location),
+  const [json, fees] = await Promise.all([
+    request<{ data?: { total_count?: number; vendors?: RawVendor[] } }>(
+      SNAPP_BASE,
+      `/market-party/${location.lat}/${location.lng}`,
+      {
+        token,
+        query: {
+          deal_type: 'supermarket',
+          isPro: 'false',
+          page: String(page),
+          page_size: String(pageSize),
+          ...common(location),
+        },
       },
-    },
-  );
+    ),
+    feeIndex(token, location, { pro }),
+  ]);
 
   const vendors = json.data?.vendors ?? [];
   const total = Number(json.data?.total_count ?? 0);
@@ -248,7 +253,7 @@ export async function campaignPage(
 
   for (const raw of vendors) {
     firstOrderSkipped += raw.personalizedProducts?.length ?? 0;
-    const vendor = toVendor(raw);
+    const vendor = withFee(toVendor(raw), fees);
     for (const product of raw.products ?? []) {
       const offer = toOffer(product, vendor);
       if (!offer.targeted) offers.push(offer);
@@ -269,11 +274,13 @@ export async function campaignVendors(
   token: string,
   location: Location,
   maxVendors = 60,
+  { pro = false }: FeeOptions = {},
 ): Promise<{ vendors: Vendor[]; previews: Offer[]; firstOrderSkipped: number }> {
   const vendors: Vendor[] = [];
   const previews: Offer[] = [];
   let firstOrderSkipped = 0;
   let total = Infinity;
+  const fees = await feeIndex(token, location, { pro });
 
   for (let page = 0; vendors.length < Math.min(maxVendors, total) && page < 20; page += 1) {
     const json = await request<{ data?: { total_count?: number; vendors?: RawVendor[] } }>(
@@ -296,7 +303,7 @@ export async function campaignVendors(
 
     for (const raw of batch) {
       firstOrderSkipped += raw.personalizedProducts?.length ?? 0;
-      const vendor = toVendor(raw);
+      const vendor = withFee(toVendor(raw), fees);
       vendors.push(vendor);
       for (const product of raw.products ?? []) {
         const offer = toOffer(product, vendor);
@@ -428,6 +435,7 @@ export async function searchCatalogue(
   query: string,
   location: Location,
   pages = 2,
+  { pro = false }: FeeOptions = {},
 ): Promise<Offer[]> {
   const [items, vendors] = await Promise.all([
     (async () => {
@@ -467,13 +475,13 @@ export async function searchCatalogue(
       }
       return all;
     })(),
-    nearbyVendors(token, location),
+    feeIndex(token, location, { pro }),
   ]);
 
   const offers: Offer[] = [];
   for (const item of items) {
     const vendorId = String(item.document_id ?? '').split('-')[1];
-    const vendor = vendors.get(vendorId);
+    const vendor = vendors.byId.get(vendorId);
     if (!vendor) continue; // this vendor does not deliver here
     const price = Number(item.price ?? 0);
     const discount = Number(item.discount ?? 0);
@@ -482,6 +490,7 @@ export async function searchCatalogue(
       platform: 'snapp',
       platformLabel: 'اسنپ‌مارکت',
       productId: String(item.id ?? ''),
+      catalogId: String(item.id ?? ''),
       title: item.title || '',
       image: item.images?.[0]?.main || item.images?.[0]?.thumb || '',
       category: item.subcategory_slug || '',
@@ -504,11 +513,21 @@ export async function searchCatalogue(
 
 const PRO_DISCOUNT = '18000'; // the site's own delivery-discount hint for Pro members
 
+export interface FeeOptions {
+  /**
+   * The account has a Snapp Pro subscription. Only then do Pro stores deliver
+   * at their discounted fee: measured on one store, 2,000 Toman with Pro and
+   * 34,000 without. The site asks for the discount only for a Pro account.
+   */
+  pro?: boolean;
+}
+
 /** Every supermarket that delivers here, keyed by vendor id. */
 export async function nearbyVendors(
   token: string,
   location: Location,
   pageSize = 50,
+  { pro = false }: FeeOptions = {},
 ): Promise<Map<string, Vendor>> {
   const json = await request<{
     data?: {
@@ -534,8 +553,7 @@ export async function nearbyVendors(
       page_size: String(pageSize),
       is_home: 'false',
       page_type: 'vendor_list',
-      pro_discount: PRO_DISCOUNT,
-      pro_client: 'snapp',
+      ...(pro ? { pro_discount: PRO_DISCOUNT, pro_client: 'snapp' } : {}),
       ...common(location),
     },
   });
@@ -558,6 +576,208 @@ export async function nearbyVendors(
     });
   }
   return index;
+}
+
+interface FeeIndex {
+  byId: Map<string, Vendor>;
+  byCode: Map<string, Vendor>;
+}
+
+const FEE_TTL = 5 * 60_000;
+const feeCache = new Map<string, { at: number; index: Promise<FeeIndex> }>();
+
+/**
+ * The stores around a point with the fee this account actually pays. The
+ * campaign listing always quotes a Pro store at its Pro fee, so for everyone
+ * else the fee comes from here. One request serves every page of a scroll.
+ */
+export function feeIndex(
+  token: string,
+  location: Location,
+  { pro = false }: FeeOptions = {},
+): Promise<FeeIndex> {
+  const key = `${pro}@${location.lat},${location.lng}`;
+  const hit = feeCache.get(key);
+  if (hit && Date.now() - hit.at < FEE_TTL) return hit.index;
+
+  const index = nearbyVendors(token, location, 50, { pro })
+    .then((byId) => ({
+      byId,
+      byCode: new Map([...byId.values()].map((vendor) => [vendor.code, vendor])),
+    }))
+    .catch((error) => {
+      feeCache.delete(key);
+      throw error;
+    });
+  feeCache.set(key, { at: Date.now(), index });
+  return index;
+}
+
+/**
+ * The fee from the store listing, which knows whether the account is Pro. A
+ * Pro store missing from it keeps its listing entry but says the fee is not
+ * known, rather than showing the Pro fee to someone who would not get it.
+ */
+function withFee(vendor: Vendor, fees: FeeIndex): Vendor {
+  const listed = fees.byCode.get(vendor.code);
+  if (listed) {
+    return {
+      ...vendor,
+      deliveryFee: listed.deliveryFee,
+      minOrder: vendor.minOrder || listed.minOrder,
+    };
+  }
+  return vendor.isPro ? { ...vendor, deliveryFeeUnknown: true } : vendor;
+}
+
+/* ------------------------------------------------------------ basket ---- */
+
+export interface SuggestedLine {
+  catalogId: string;
+  title: string;
+  image: string;
+  /** Toman, before the discount. */
+  price: number;
+  /** Toman, per unit. */
+  finalPrice: number;
+  discountPercent: number;
+  /** Units the store can sell in one order — its stock, or its per-order cap. */
+  available: number;
+}
+
+export interface SuggestedVendor {
+  vendor: Vendor;
+  lines: SuggestedLine[];
+}
+
+interface RawSuggestion {
+  id: number;
+  code: string;
+  title: string;
+  logo?: string;
+  deliveryFee?: number;
+  minimumOrderValue?: number;
+  isOpen?: boolean;
+  is_pro?: boolean;
+  rate?: number;
+  deliveryData?: { deliveryTime?: number; doesDeliver?: boolean };
+  products?: {
+    id: number;
+    title: string;
+    price: number;
+    discount?: number;
+    discount_ratio?: number;
+    stock?: number;
+    no_stock?: boolean;
+    quantity?: number;
+    capacity?: number | null;
+    images?: { main?: string; thumb?: string }[];
+  }[];
+}
+
+/**
+ * Snapp Market's own "which store has my basket" answer — the call behind the
+ * site's store switcher. It prices every product at each store it proposes,
+ * with the delivery fee this account pays, and trims a quantity to what the
+ * store will sell in one order. It proposes five stores at most, best first.
+ */
+export async function suggestVendors(
+  token: string,
+  location: Location,
+  products: { catalogId: string; quantity: number }[],
+  { pro = false }: FeeOptions = {},
+): Promise<SuggestedVendor[]> {
+  if (!products.length) return [];
+  const json = await request<RawSuggestion[] | { detail?: unknown }>(
+    SNAPP_BASE,
+    '/express-vendor/vendor-switch/suggestions',
+    {
+      token,
+      query: {
+        products: JSON.stringify(
+          products.map((item) => ({ product_id: Number(item.catalogId), quantity: item.quantity })),
+        ),
+        pro_client: String(pro),
+        pro_discount: pro ? PRO_DISCOUNT : '0',
+        active_cpc: 'false',
+        ...common(location),
+      },
+    },
+  );
+  if (!Array.isArray(json)) return [];
+
+  const wanted = new Map(products.map((item) => [item.catalogId, item.quantity]));
+  return json
+    .filter((raw) => raw.isOpen !== false && raw.deliveryData?.doesDeliver !== false)
+    .map((raw) => ({
+      vendor: {
+        id: raw.id,
+        code: raw.code,
+        name: raw.title,
+        logo: raw.logo || '',
+        deliveryFee: Number(raw.deliveryFee ?? 0),
+        deliveryTime: Number(raw.deliveryData?.deliveryTime ?? 0),
+        isPro: Boolean(raw.is_pro),
+        isOpen: raw.isOpen !== false,
+        rating: Number(raw.rate ?? 0),
+        minOrder: Number(raw.minimumOrderValue ?? 0),
+      },
+      lines: (raw.products ?? [])
+        .filter((line) => !line.no_stock)
+        .map((line) => {
+          const price = Number(line.price ?? 0);
+          const discount = Number(line.discount ?? 0);
+          const asked = wanted.get(String(line.id)) ?? 1;
+          // The answer lowers `quantity` to what one order may carry.
+          const available = Math.min(
+            Number(line.stock ?? asked),
+            Number(line.quantity ?? asked) < asked ? Number(line.quantity) : Infinity,
+            line.capacity ? Number(line.capacity) : Infinity,
+          );
+          return {
+            catalogId: String(line.id),
+            title: line.title,
+            image: line.images?.[0]?.main || line.images?.[0]?.thumb || '',
+            price,
+            finalPrice: Math.max(price - discount, 0),
+            discountPercent: Number(line.discount_ratio ?? 0),
+            available,
+          };
+        }),
+    }))
+    .filter((entry) => entry.lines.length > 0);
+}
+
+/** Candidate products for a title — one row per product, at its best store. */
+export async function findProducts(
+  token: string,
+  query: string,
+  location: Location,
+): Promise<{ catalogId: string; title: string }[]> {
+  const json = await request<{ items?: { id: number; title: string }[] }>(
+    SNAPP_BASE,
+    '/mobile/v3/product-vendors/search',
+    {
+      token,
+      query: {
+        page: '0',
+        query,
+        new_search: '1',
+        new_design: '0',
+        'superType[]': '4',
+        size: '30',
+        origin: 'sl-search',
+        source: '2',
+        personalize: 'true',
+        ...common(location),
+      },
+    },
+  );
+  const seen = new Map<string, string>();
+  for (const item of json.items ?? []) {
+    if (!seen.has(String(item.id))) seen.set(String(item.id), item.title);
+  }
+  return [...seen].map(([catalogId, title]) => ({ catalogId, title }));
 }
 
 export { NotSignedInError };

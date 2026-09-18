@@ -61,6 +61,8 @@ interface RawProduct {
   maxOrderLimit?: number;
   storeId?: number;
   storeName?: string;
+  /** The product across stores; `id` can differ from one store to another. */
+  masterProductId?: number;
 }
 
 /** `"01:00:00"` → 60 minutes. */
@@ -114,6 +116,7 @@ function toOffer(product: RawProduct, vendor: Vendor): Offer {
     platform: 'okala',
     platformLabel: 'اوکالا',
     productId: String(product.id ?? ''),
+    catalogId: String(product.masterProductId ?? product.id ?? ''),
     title: product.name || '',
     image: product.imageUrl || '',
     category: '',
@@ -127,6 +130,7 @@ function toOffer(product: RawProduct, vendor: Vendor): Offer {
     targeted: false,
     stock: product.hasQuantity === false ? 0 : Number(product.quantity ?? 99),
     outOfStock: product.hasQuantity === false || Number(product.quantity ?? 1) <= 0,
+    ...(product.maxOrderLimit ? { maxPerOrder: Number(product.maxOrderLimit) } : {}),
     vendor,
     url: productUrl(product.storeId ?? vendor.code, product.id, product.name),
     // These rows come from the same calls the Okala site makes for the user, so
@@ -210,17 +214,73 @@ export async function refresh(): Promise<Session> {
 
 /* ------------------------------------------------------------ catalog ---- */
 
-/** Every Okala store that delivers to the point. No token needed. */
-export async function storesNearby(location: Location): Promise<RawStore[]> {
-  const json = await request<{ data?: { stores?: RawStore[] } }>(
+const STORES_TTL = 5 * 60_000;
+const storesCache = new Map<string, { at: number; stores: Promise<RawStore[]> }>();
+
+/**
+ * Every Okala store that delivers to the point. No token needed. Kept for a
+ * few minutes, since a basket asks once per product and the answer is the
+ * same each time.
+ */
+export function storesNearby(location: Location): Promise<RawStore[]> {
+  const key = `${location.lat},${location.lng}`;
+  const hit = storesCache.get(key);
+  if (hit && Date.now() - hit.at < STORES_TTL) return hit.stores;
+
+  const stores = request<{ data?: { stores?: RawStore[] } }>(
     OKALA_BASE,
     '/api/opex/v4/stores/nearby',
     {
       headers: gatewayHeaders(false),
       query: { latitude: String(location.lat), longitude: String(location.lng) },
     },
-  );
-  return json.data?.stores ?? [];
+  )
+    .then((json) => json.data?.stores ?? [])
+    .catch((error) => {
+      storesCache.delete(key);
+      throw error;
+    });
+  storesCache.set(key, { at: Date.now(), stores });
+  return stores;
+}
+
+const DETAILS_TTL = 30 * 60_000;
+const minimumCache = new Map<string, { at: number; minimum: Promise<number | null> }>();
+
+/**
+ * The smallest basket a store checks out, in Toman — «حداقل مبلغ سبد» on the
+ * site. Only the store's own details carry it, and it varies a lot: measured
+ * around one point, 150,000 at one store and 350,000 at the next. Null when the
+ * store would not say.
+ */
+export function storeMinimum(storeId: string | number, location: Location): Promise<number | null> {
+  const key = `${storeId}@${location.lat},${location.lng}`;
+  const hit = minimumCache.get(key);
+  if (hit && Date.now() - hit.at < DETAILS_TTL) return hit.minimum;
+
+  const minimum = request<{ data?: { minimumOrder?: number } }>(
+    OKALA_BASE,
+    '/api/opex/v2/stores/details',
+    {
+      headers: gatewayHeaders(false),
+      query: {
+        Latitude: String(location.lat),
+        longitude: String(location.lng),
+        StoreId: String(storeId),
+        customerSegments: '',
+      },
+    },
+  )
+    .then((json) => {
+      const value = json.data?.minimumOrder;
+      return typeof value === 'number' ? value / RIAL_TO_TOMAN : null;
+    })
+    .catch(() => {
+      minimumCache.delete(key);
+      return null;
+    });
+  minimumCache.set(key, { at: Date.now(), minimum });
+  return minimum;
 }
 
 /**
@@ -259,6 +319,22 @@ export async function offers(location: Location, stores: RawStore[]): Promise<Of
   return out;
 }
 
+const RETRY_AFTER_MS = [400, 900];
+
+type SearchAnswer = {
+  data?: Record<string, { store?: RawStore; products?: RawProduct[] }>;
+  success?: boolean;
+  errorMessage?: string;
+};
+
+function searchOnce(query: string, location: Location, token: string): Promise<SearchAnswer> {
+  return request<SearchAnswer>(OKALA_BASE, '/api/unicorn/v2/cumulative/search/nearby', {
+    token,
+    headers: gatewayHeaders(true),
+    query: { q: query, lat: String(location.lat), lon: String(location.lng), v4Stores: 'true' },
+  });
+}
+
 /**
  * Search across every nearby store. Results arrive grouped by store, with the
  * delivery fee but without the service and packaging charges, which come from
@@ -267,15 +343,19 @@ export async function offers(location: Location, stores: RawStore[]): Promise<Of
 export async function search(query: string, location: Location, token: string): Promise<Offer[]> {
   // Started first so the search is the first request out; the store listing
   // only adds charges, and a search without them is still a search.
-  const found = request<{
-    data?: Record<string, { store?: RawStore; products?: RawProduct[] }>;
-    success?: boolean;
-    errorMessage?: string;
-  }>(OKALA_BASE, '/api/unicorn/v2/cumulative/search/nearby', {
-    token,
-    headers: gatewayHeaders(true),
-    query: { q: query, lat: String(location.lat), lon: String(location.lng), v4Stores: 'true' },
-  });
+  const found = (async () => {
+    // The gateway now and then answers `{ data: null, success: false }` with
+    // no reason — measured at one search in ten or so, at any concurrency —
+    // and the same request a moment later succeeds. A few spaced retries, then
+    // the failure stands.
+    let json = await searchOnce(query, location, token);
+    for (const wait of RETRY_AFTER_MS) {
+      if (json?.success !== false || json.errorMessage) break;
+      await new Promise((resolve) => setTimeout(resolve, wait));
+      json = await searchOnce(query, location, token);
+    }
+    return json;
+  })();
   const nearby = storesNearby(location).catch((): RawStore[] => []);
   const [json, stores] = await Promise.all([found, nearby]);
 

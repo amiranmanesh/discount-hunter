@@ -28,6 +28,12 @@ export interface Offer {
   platform: PlatformId;
   platformLabel: string;
   productId: string;
+  /**
+   * The product's id across every store of its platform — Snapp Market's
+   * product variation, Digikala Jet's `product_id`, Okala's `masterProductId`.
+   * Two offers with the same one are the same product in two stores.
+   */
+  catalogId?: string;
   title: string;
   image: string;
   category: string;
@@ -45,6 +51,8 @@ export interface Offer {
   targeted: boolean;
   stock: number;
   outOfStock: boolean;
+  /** Units one order may carry, when the platform caps it (Okala). */
+  maxPerOrder?: number;
   vendor: Vendor;
   /** Deep link to the product, inside the store that sells it at this price. */
   url: string;

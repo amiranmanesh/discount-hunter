@@ -23,7 +23,7 @@ function sameChoice(a: Location | null, b: Location | null): boolean {
  * long list of addresses used to move it without a word.
  */
 export default function SettingsPage() {
-  const { location, setLocation } = useSettings();
+  const { location, setLocation, snappPro, patch } = useSettings();
   const { data: tokens } = useTokens();
   const [draft, setDraft] = useState<Location | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -142,6 +142,24 @@ export default function SettingsPage() {
           })}
         </section>
       )}
+
+      <section className="card stack" style={{ marginTop: 10 }}>
+        <b>هزینهٔ ارسال</b>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={snappPro}
+            onChange={(event) => patch({ snappPro: event.target.checked })}
+          />
+          <span>
+            اشتراک اسنپ پرو دارم
+            <span className="muted" style={{ display: 'block' }}>
+              فروشگاه‌های «پرو» اسنپ‌مارکت فقط برای مشترک پرو ارسال ارزان دارند؛ بدون اشتراک همان
+              هزینهٔ کامل را می‌پردازی و برنامه هم همان را حساب می‌کند.
+            </span>
+          </span>
+        </label>
+      </section>
 
       <section className="card stack" style={{ marginTop: 10 }}>
         <b>دربارهٔ این برنامه</b>

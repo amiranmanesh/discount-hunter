@@ -96,7 +96,8 @@ describe('search', () => {
         : { data: { 0: { store, products: [product()] } }, success: true },
     );
 
-    const [offer] = await okala.search('پفک', LOCATION, 'token');
+    // The store listing is cached per point, so this test asks about its own.
+    const [offer] = await okala.search('پفک', { ...LOCATION, lat: 35.1 }, 'token');
     expect(offer.vendor.deliveryFee).toBe(25000);
     expect(offer.vendor.serviceFee).toBe(12900);
     expect(offer.url).toMatch(/^https:\/\/www\.okala\.com\/store\/8836\/product\/190926\//);
@@ -113,8 +114,23 @@ describe('search', () => {
       } as unknown as Response;
     });
 
-    const [offer] = await okala.search('پفک', LOCATION, 'token');
+    const [offer] = await okala.search('پفک', { ...LOCATION, lat: 35.2 }, 'token');
     expect(offer.vendor.serviceFee).toBeUndefined();
+  });
+
+  it('asks once more when the gateway fails without saying why', async () => {
+    let searches = 0;
+    mockJson((url) => {
+      if (url.includes('/stores/nearby')) return { data: { stores: [] } };
+      searches += 1;
+      return searches === 1
+        ? { success: false, errorMessage: null }
+        : { success: true, data: { 0: { store, products: [product()] } } };
+    });
+
+    const offers = await okala.search('شیر', { ...LOCATION, lat: 35.5 }, 'token');
+    expect(searches).toBe(2);
+    expect(offers).toHaveLength(1);
   });
 
   it('surfaces the API message when the search is rejected', async () => {
@@ -142,6 +158,24 @@ describe('search', () => {
     expect(offer.isCampaign).toBe(false);
     expect(offer.campaignLabel).toBe('قیمت فروشگاه');
     expect(offer.finalPrice).toBe(65000);
+  });
+});
+
+describe('storesNearby', () => {
+  it('asks once per point within a few minutes', async () => {
+    const fetchMock = mockJson(() => ({ data: { stores: [nearby(1)] } }));
+    const where = { ...LOCATION, lat: 35.3 };
+    await okala.storesNearby(where);
+    await okala.storesNearby(where);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks again after a failure instead of remembering it', async () => {
+    const where = { ...LOCATION, lat: 35.4 };
+    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('network'));
+    await expect(okala.storesNearby(where)).rejects.toThrow();
+    mockJson(() => ({ data: { stores: [nearby(1)] } }));
+    expect(await okala.storesNearby(where)).toHaveLength(1);
   });
 });
 

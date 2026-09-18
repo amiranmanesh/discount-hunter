@@ -13,6 +13,8 @@ export interface HuntOptions {
   onlyCampaign: boolean;
   onlyOpen: boolean;
   minDiscount: number;
+  /** The Snapp Market account has Snapp Pro, so Pro stores' discounted fees apply. */
+  snappPro?: boolean;
   maxVendors?: number;
   /** How many leading Snapp offers to confirm against the stores' own shelves. */
   verifyTop?: number;
@@ -56,6 +58,7 @@ export async function hunt(
     onlyCampaign,
     onlyOpen,
     minDiscount,
+    snappPro = false,
     maxVendors = 60,
     verifyTop = 20,
   } = options;
@@ -84,7 +87,7 @@ export async function hunt(
           vendors,
           previews,
           firstOrderSkipped: skipped,
-        } = await snapp.campaignVendors(snappToken, location, maxVendors);
+        } = await snapp.campaignVendors(snappToken, location, maxVendors, { pro: snappPro });
         vendorCount = vendors.length;
         firstOrderSkipped = skipped;
 
@@ -110,7 +113,7 @@ export async function hunt(
     if (!onlyCampaign) {
       jobs.push(
         snapp
-          .searchCatalogue(snappToken, query, location)
+          .searchCatalogue(snappToken, query, location, 2, { pro: snappPro })
           .then((offers) => void pool.push(...offers))
           .catch((error) => {
             errors.push(`جستجوی اسنپ‌مارکت: ${error instanceof Error ? error.message : error}`);

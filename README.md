@@ -29,18 +29,23 @@ Okala's offer carousels all run across dozens of stores at once, and the same
 product is discounted differently in each. This app reads all three, from your
 own accounts, and sorts everything by how deep the discount actually is.
 
-Two ways to use it:
+Three ways to use it:
 
 - **تخفیف‌ها** — an endless feed of every campaign offer in range, deepest
   discount first, mixed across all three platforms. Nothing to type.
 - **جستجو** — one product, priced across every store that delivers to you, ranked
   by discount, then Snapp Market **Pro**, then delivery fee.
+- **سبد** — the things you want to buy, and the cheapest way to buy all of them:
+  which store on which platform for each item, split into at most one, two or
+  three orders, with every store's delivery, service charge and minimum basket
+  counted. The same product is recognised across platforms by its title and
+  size, strictly, and every match can be refused with one tap.
 
 It is an independent, open-source project, not affiliated with Snapp or Digikala.
 
 ## Only prices you can actually pay
 
-Three rules, each of which exists because the app once got it wrong:
+Four rules, each of which exists because the app once got it wrong:
 
 - **The first-order shelf is never read.** Every 90-99% discount in Snapp
   Market's campaign feed is segmented to brand-new accounts. Those prices do not
@@ -52,6 +57,10 @@ Three rules, each of which exists because the app once got it wrong:
 - **There is no guest mode.** A guest sees a different campaign at different
   prices, so Snapp Market is skipped rather than searched anonymously, and the
   app says so. Okala's search needs its own token too; Digikala Jet's does not.
+- **A fee is the fee you pay.** Snapp Market's Pro stores deliver cheaply only to
+  Snapp Pro subscribers, so without the subscription (a switch in **تنظیمات**)
+  the full fee is used; Okala's service and packaging charges count; a delivery
+  cost a listing leaves out is looked up, never read as free.
 
 ## Run it
 

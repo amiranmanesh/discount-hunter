@@ -25,7 +25,7 @@ const FRESH_FOR = 5 * 60_000;
  * across both platforms. No query, no filters to set — just scroll.
  */
 export default function DealsPage() {
-  const { location, sources, minDiscount, onlyOpen, patch } = useSettings();
+  const { location, sources, minDiscount, onlyOpen, snappPro, patch } = useSettings();
   const { data: tokens, isPending: tokensPending } = useTokens();
   const sentinel = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -34,8 +34,17 @@ export default function DealsPage() {
     Boolean(location) && !tokensPending && Boolean(tokens?.snapp || sources.jet || sources.okala);
 
   const queryKey = useMemo(
-    () => ['deals', location?.lat, location?.lng, sources, minDiscount, onlyOpen, tokens?.snapp],
-    [location?.lat, location?.lng, sources, minDiscount, onlyOpen, tokens?.snapp],
+    () => [
+      'deals',
+      location?.lat,
+      location?.lng,
+      sources,
+      minDiscount,
+      onlyOpen,
+      snappPro,
+      tokens?.snapp,
+    ],
+    [location?.lat, location?.lng, sources, minDiscount, onlyOpen, snappPro, tokens?.snapp],
   );
 
   const query = useInfiniteQuery({
@@ -46,7 +55,7 @@ export default function DealsPage() {
       dealsPage(
         pageParam,
         location!,
-        { sources, minDiscount, onlyOpen },
+        { sources, minDiscount, onlyOpen, snappPro },
         { snapp: tokens?.snapp, jet: tokens?.jet, okala: tokens?.okala },
       ),
     getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),

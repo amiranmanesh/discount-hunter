@@ -1,6 +1,10 @@
+'use client';
+
 import { memo } from 'react';
 import type { Offer } from '../core/types';
 import { totalCost } from '../core/rank';
+import { refFromOffer, refKey } from '../core/basket';
+import { useBasket } from '../store/basket';
 
 const money = new Intl.NumberFormat('fa-IR');
 const toman = (value: number) => `${money.format(Math.round(value))} تومان`;
@@ -74,12 +78,39 @@ function OfferCard({ offer, highlight = false }: Props) {
 
         <div className="offer-foot">
           <span className="offer-total">{totals.join(' · ')}</span>
-          <a className="offer-open" href={offer.url} target="_blank" rel="noreferrer noopener">
-            باز کردن ↗
-          </a>
+          <span className="offer-actions">
+            <BasketButton offer={offer} />
+            <a className="offer-open" href={offer.url} target="_blank" rel="noreferrer noopener">
+              باز کردن ↗
+            </a>
+          </span>
         </div>
       </div>
     </article>
+  );
+}
+
+/**
+ * Adds the product — not this store's listing of it — to the basket, which
+ * later prices it everywhere. Only the product's own id is checked here, so a
+ * long list of cards stays cheap to re-render.
+ */
+function BasketButton({ offer }: { offer: Offer }) {
+  const key = refKey(refFromOffer(offer));
+  const quantity = useBasket(
+    (state) => state.items.find((item) => item.refs.some((ref) => refKey(ref) === key))?.quantity,
+  );
+  const add = useBasket((state) => state.add);
+
+  return (
+    <button
+      type="button"
+      className={`offer-open offer-basket${quantity ? ' offer-basket--in' : ''}`}
+      onClick={() => add(offer)}
+      aria-label={quantity ? `یکی دیگر به سبد (الان ${quantity})` : 'افزودن به سبد'}
+    >
+      {quantity ? `✓ سبد ${money.format(quantity)}` : '+ سبد'}
+    </button>
   );
 }
 

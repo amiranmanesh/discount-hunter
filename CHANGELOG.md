@@ -6,6 +6,34 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **سبد — a basket, and the cheapest way to buy it.** Add products with
+  «+ سبد» from the feed or a search; the basket prices each one at every store
+  on all three platforms and finds the cheapest way to buy the lot in at most
+  one, two or three orders, counting each store's delivery fee, service charge
+  and minimum basket and what it will sell in one order. Each order lists its
+  products at that store's own price, linked to its page there.
+  - The same product is recognised across platforms by its title and size, and
+    the rule is strict: a different size, brand, pack or flavour is never
+    counted as the same thing. Every match can be refused with «این نیست», and
+    a close-but-unsure title can be accepted with «همین است».
+  - Changing a quantity, a match or the number of orders re-plans at once,
+    without asking any platform again.
+- **اشتراک اسنپ پرو دارم** in **تنظیمات**.
+
+### Fixed
+
+- **Snapp Market's Pro stores showed their Pro delivery fee to everyone.** A Pro
+  store delivers cheaply only to a Snapp Pro subscriber — measured on one
+  store, 2,000 Toman with Pro and 34,000 without — and the campaign feed always
+  quotes the Pro fee. Without the new setting the full fee is now shown and
+  counted everywhere.
+- Okala searches that the gateway fails without a reason, about one in ten, are
+  retried instead of dropping the platform from the answer.
+- The bottom navigation now marks the page you are on; it had stopped
+  highlighting any tab.
+
 ## [3.1.1] — 2026-09-18
 
 ### Fixed

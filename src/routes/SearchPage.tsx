@@ -16,7 +16,8 @@ const money = new Intl.NumberFormat('fa-IR');
 
 export default function SearchPage() {
   const settings = useSettings();
-  const { location, sortMode, sources, onlyCampaign, onlyOpen, minDiscount, patch } = settings;
+  const { location, sortMode, sources, onlyCampaign, onlyOpen, minDiscount, snappPro, patch } =
+    settings;
   const { data: tokens, isPending: tokensPending } = useTokens();
 
   const [query, setQuery] = useState('');
@@ -37,7 +38,7 @@ export default function SearchPage() {
       hunt(
         term,
         location!,
-        { sources, sortMode, onlyCampaign, onlyOpen, minDiscount },
+        { sources, sortMode, onlyCampaign, onlyOpen, minDiscount, snappPro },
         { snapp: tokens?.snapp ?? null, jet: tokens?.jet ?? null, okala: tokens?.okala ?? null },
       ),
     onSuccess: (_, term) => settings.rememberQuery(term),

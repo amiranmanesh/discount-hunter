@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useSettings } from '@/store/settings';
+import { useBasket } from '@/store/basket';
 
 /**
  * Client-side setup that every page shares: the query cache, and the service
@@ -33,6 +34,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   // See the `skipHydration` note in `src/store/settings.ts`.
   useEffect(() => {
     void useSettings.persist.rehydrate();
+    void useBasket.persist.rehydrate();
   }, []);
 
   useEffect(() => {

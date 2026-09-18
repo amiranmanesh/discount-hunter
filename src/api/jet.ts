@@ -90,6 +90,7 @@ function toOffer(item: RawJetProduct): Offer {
     platform: 'jet',
     platformLabel: 'دیجی‌کالا جت',
     productId: String(item.product_id ?? item.id ?? ''),
+    catalogId: String(item.product_id ?? item.id ?? ''),
     title: item.title || '',
     image: item.media || '',
     category: '',
@@ -177,12 +178,16 @@ export interface JetPage {
   hasMore: boolean;
 }
 
-/** Search every shop that delivers to the point. `sort=26` is "بیشترین تخفیف". */
+/** Jet's sort orders: 26 is «بیشترین تخفیف», 22 its default relevance. */
+export type JetSort = '26' | '22';
+
+/** Search every shop that delivers to the point, deepest discount first by default. */
 export async function search(
   query: string,
   location: Location,
   page = 1,
   token?: string | null,
+  sort: JetSort = '26',
 ): Promise<JetPage> {
   const json = await request<{
     data?: {
@@ -197,7 +202,7 @@ export async function search(
       shopId: '',
       latitude: String(location.lat),
       longitude: String(location.lng),
-      sort: '26',
+      sort,
       page: String(page),
       ch: 'jj',
     },
