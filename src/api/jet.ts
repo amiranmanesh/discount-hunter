@@ -5,9 +5,21 @@
 // account's own endpoints, such as its saved addresses.
 import { ApiError, JET_BASE, request } from './http';
 import { makeSession, type Session } from '../auth/session';
-import type { Address, Location, Offer } from '../core/types';
+import type { Address, Location, Offer, Vendor } from '../core/types';
 
 const RIAL_TO_TOMAN = 10;
+
+interface RawJetShop {
+  id?: string;
+  title?: string;
+  media?: string;
+  /** Rial. The smallest basket the shop checks out. */
+  cart_close_limit?: number;
+  /** `cost` is missing from the شگفت‌انگیز and galaxy listings. */
+  delivery?: { cost?: number; estimate_time?: number; is_free_by_plus?: boolean };
+  working_status?: { is_open?: boolean };
+  rating?: { rate?: number };
+}
 
 interface RawJetProduct {
   id: number;
@@ -16,30 +28,63 @@ interface RawJetProduct {
   media?: string;
   price?: {
     price?: number;
+    /** Rial, the whole discount — including any part only taken off at checkout. */
     discount?: number;
+    /** Rial. The store's and the brand's shares: what the product page shows. */
+    vendor_discount?: number;
+    brand_discount?: number;
     discount_percentage?: number;
   };
   badges?: { is_amazing?: boolean; is_special_sale?: boolean };
   is_best_deal?: boolean;
   stock?: { has_stock?: boolean; is_running_low?: boolean };
-  shop?: {
-    id?: string;
-    title?: string;
-    media?: string;
-    delivery?: { cost?: number; estimate_time?: number; is_free_by_plus?: boolean };
-    working_status?: { is_open?: boolean };
-    rating?: { rate?: number };
+  /** The galaxy listing sends `{ id }` and nothing else. */
+  shop?: RawJetShop;
+}
+
+function toVendor(shop: RawJetShop): Vendor {
+  const delivery = shop.delivery ?? {};
+  return {
+    id: shop.id ?? '',
+    code: String(shop.id ?? ''),
+    name: shop.title || 'فروشگاه جت',
+    logo: shop.media || '',
+    deliveryFee: Number(delivery.cost ?? 0) / RIAL_TO_TOMAN,
+    // Measured: the شگفت‌انگیز row and the galaxy listing leave `cost` out,
+    // while the shop's own page charges 30,000–45,000 Toman for the same trip.
+    // Reading the gap as 0 is what showed "ارسال رایگان" on every one of them.
+    ...(delivery.cost === undefined ? { deliveryFeeUnknown: true } : {}),
+    deliveryTime: Number(delivery.estimate_time ?? 0),
+    isPro: false, // "پرو" is a Snapp Market tier; Jet's equivalent perk is free shipping
+    isOpen: shop.working_status?.is_open !== false,
+    rating: Number(shop.rating?.rate ?? 0),
+    minOrder: Number(shop.cart_close_limit ?? 0) / RIAL_TO_TOMAN,
   };
 }
 
-function toOffer(item: RawJetProduct, linkQuery: string): Offer {
+/**
+ * Jet's product page, inside the shop that lists it. It takes the listing row's
+ * `id`; the `product_id` next to it is the catalogue id and 404s here.
+ */
+export function productUrl(shopId: string | number, id: string | number): string {
+  return `https://www.digikalajet.com/shop/product/${shopId}/${id}/`;
+}
+
+function toOffer(item: RawJetProduct): Offer {
   const price = Number(item.price?.price ?? 0) / RIAL_TO_TOMAN;
   const discountAmount = Number(item.price?.discount ?? 0) / RIAL_TO_TOMAN;
   const shop = item.shop ?? {};
-  const delivery = shop.delivery ?? {};
   const isAmazing = Boolean(
     item.badges?.is_amazing || item.badges?.is_special_sale || item.is_best_deal,
   );
+
+  // The product page shows only the store's and the brand's share of the
+  // discount; the شگفت‌انگیز share comes off at checkout, as «استفاده از تخفیف
+  // شگفت‌انگیز». Measured on every galaxy row: page discount = vendor + brand.
+  const pageDiscount =
+    (Number(item.price?.vendor_discount ?? 0) + Number(item.price?.brand_discount ?? 0)) /
+    RIAL_TO_TOMAN;
+  const takenAtCheckout = discountAmount - pageDiscount > 0;
 
   return {
     platform: 'jet',
@@ -58,19 +103,9 @@ function toOffer(item: RawJetProduct, linkQuery: string): Offer {
     targeted: false,
     stock: item.stock?.has_stock === false ? 0 : item.stock?.is_running_low ? 1 : 99,
     outOfStock: item.stock?.has_stock === false,
-    vendor: {
-      id: shop.id ?? '',
-      code: String(shop.id ?? ''),
-      name: shop.title || 'فروشگاه جت',
-      logo: shop.media || '',
-      deliveryFee: Number(delivery.cost ?? 0) / RIAL_TO_TOMAN,
-      deliveryTime: Number(delivery.estimate_time ?? 0),
-      isPro: false, // "پرو" is a Snapp Market tier; Jet's equivalent perk is free shipping
-      isOpen: shop.working_status?.is_open !== false,
-      rating: Number(shop.rating?.rate ?? 0),
-      minOrder: 0,
-    },
-    url: `https://www.digikalajet.com/search/?q=${encodeURIComponent(linkQuery)}&shopId=${shop.id ?? ''}`,
+    vendor: toVendor(shop),
+    url: productUrl(shop.id ?? '', item.id),
+    ...(takenAtCheckout ? { pagePrice: Math.max(price - pageDiscount, 0) } : {}),
     // This row came from the same search the Jet site runs, so it needs no
     // separate confirmation step.
     verified: true,
@@ -171,7 +206,7 @@ export async function search(
   const rows = json.data?.result ?? [];
   const totalPages = Number(json.data?.pager?.total_pages ?? 1);
   return {
-    offers: rows.map((item) => toOffer(item, query)),
+    offers: rows.map(toOffer),
     total: Number(json.data?.pager?.total_items ?? rows.length),
     totalPages,
     hasMore: page < totalPages && rows.length > 0,
@@ -200,17 +235,24 @@ export async function amazingHighlights(
       },
     },
   );
-  return (json.data?.products ?? []).map((item) => toOffer(item, item.title));
+  return (json.data?.products ?? []).map(toOffer);
 }
 
-/** The full campaign listing behind that row. Five per page, and it says so. */
+/**
+ * The full campaign listing behind that row ("کهکشانی‌ها"). Five per page, and
+ * it says so. Its rows carry the shop as a bare `{ id }` — see `withShops`.
+ */
 export async function amazingPage(
   location: Location,
   page = 1,
   token?: string | null,
 ): Promise<JetPage> {
   const json = await request<{
-    data?: { products?: RawJetProduct[]; pager?: { total_items?: number; total_pages?: number } };
+    data?: {
+      result?: RawJetProduct[];
+      products?: RawJetProduct[];
+      pager?: { total_items?: number; total_pages?: number };
+    };
   }>(JET_BASE, '/v2/products/galaxy/', {
     token,
     tokenScheme: 'raw',
@@ -223,14 +265,75 @@ export async function amazingPage(
     },
   });
 
-  const rows = json.data?.products ?? [];
+  // The rows moved from `products` to `result`; reading only the old key left
+  // the feed with the شگفت‌انگیز row and nothing after it.
+  const rows = json.data?.result ?? json.data?.products ?? [];
   const totalPages = Number(json.data?.pager?.total_pages ?? 1);
   return {
-    offers: rows.map((item) => toOffer(item, item.title)),
+    offers: rows.map(toOffer),
     total: Number(json.data?.pager?.total_items ?? rows.length),
     totalPages,
     hasMore: page < totalPages && rows.length > 0,
   };
+}
+
+/* ------------------------------------------------------------- shops ---- */
+
+/** Shop headers are per point and change slowly; one lookup serves a scroll. */
+const SHOP_TTL = 5 * 60_000;
+const shopCache = new Map<string, { at: number; shop: Promise<RawJetShop | null> }>();
+
+/** The header the shop's own page shows: name, delivery cost, minimum basket. */
+export function shopHeader(
+  shopId: string,
+  location: Location,
+  token?: string | null,
+): Promise<RawJetShop | null> {
+  const key = `${shopId}@${location.lat},${location.lng}`;
+  const hit = shopCache.get(key);
+  if (hit && Date.now() - hit.at < SHOP_TTL) return hit.shop;
+
+  const shop = request<{ data?: { shop?: RawJetShop } }>(JET_BASE, `/shop/${shopId}/header/`, {
+    token,
+    tokenScheme: 'raw',
+    query: { latitude: String(location.lat), longitude: String(location.lng), ch: 'jj' },
+  })
+    .then((json) => json.data?.shop ?? null)
+    // A shop that cannot be read keeps its offers, marked as of unknown cost,
+    // and is asked again next time rather than remembered as missing.
+    .catch(() => {
+      shopCache.delete(key);
+      return null;
+    });
+  shopCache.set(key, { at: Date.now(), shop });
+  return shop;
+}
+
+/**
+ * Fills in the shop for every offer whose listing left the delivery cost out.
+ * One request per distinct shop, not per offer.
+ */
+export async function withShops(
+  offers: Offer[],
+  location: Location,
+  token?: string | null,
+): Promise<Offer[]> {
+  const ids = [
+    ...new Set(
+      offers.filter((offer) => offer.vendor.deliveryFeeUnknown).map((offer) => offer.vendor.code),
+    ),
+  ].filter(Boolean);
+  if (!ids.length) return offers;
+
+  const shops = new Map(
+    await Promise.all(ids.map(async (id) => [id, await shopHeader(id, location, token)] as const)),
+  );
+  return offers.map((offer) => {
+    const shop = offer.vendor.deliveryFeeUnknown ? shops.get(offer.vendor.code) : null;
+    if (!shop) return offer;
+    const vendor = toVendor({ ...shop, id: shop.id ?? offer.vendor.code });
+    return { ...offer, vendor };
+  });
 }
 
 /** The addresses saved on the Jet account. Needs the token. */

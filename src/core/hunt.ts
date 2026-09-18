@@ -122,11 +122,15 @@ export async function hunt(
   if (sources.jet) {
     jobs.push(
       (async () => {
+        const found: Offer[] = [];
         for (let page = 1; page <= 3; page += 1) {
           const result = await jet.search(query, location, page, jetToken);
-          pool.push(...result.offers);
+          found.push(...result.offers);
           if (!result.hasMore) break;
         }
+        // Search rows normally carry the delivery cost; any that do not are
+        // filled from the shop rather than shown as free.
+        pool.push(...(await jet.withShops(found, location, jetToken)));
       })().catch((error) => {
         errors.push(`دیجی‌کالا جت: ${error instanceof Error ? error.message : String(error)}`);
       }),

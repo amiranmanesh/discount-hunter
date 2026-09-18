@@ -104,6 +104,21 @@ describe('totalCost', () => {
   it('is the item price plus delivery', () => {
     expect(totalCost(offer({ finalPrice: 15400 }))).toBe(35400);
   });
+
+  it('adds a store’s service charges, which a free delivery does not waive', () => {
+    const okala = withVendor('okala', { deliveryFee: 0, serviceFee: 12900 }, { finalPrice: 15400 });
+    expect(totalCost(okala)).toBe(28300);
+  });
+});
+
+describe('fees in the ordering', () => {
+  it('does not rank a free delivery with a service charge as the cheaper trip', () => {
+    const list = [
+      withVendor('charged', { deliveryFee: 0, serviceFee: 12900 }),
+      withVendor('cheap', { deliveryFee: 2000 }),
+    ];
+    expect(codes(rank(list, 'lowest-delivery'))).toEqual(['cheap', 'charged']);
+  });
 });
 
 describe('dedupe', () => {

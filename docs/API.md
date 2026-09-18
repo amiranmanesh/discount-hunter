@@ -201,13 +201,31 @@ GET /mobile/v3/search/suggest?query=<q>&source=2
 → { "suggested_keywords": ["پفک اسنک", "پفک نمکی", …] }
 ```
 
-### لینک فروشگاه
+### لینک محصول
 
 ```
-https://snapp.market/supermarket/<slug>/<vendorCode>
+https://snapp.market/supermarket/<slug>/<vendorCode>/product-details/<productVariationId>
 ```
 
-`slug` فقط تزئینی است؛ `vendorCode` مسیریابی را انجام می‌دهد.
+صفحهٔ همان کالا **داخل همان فروشگاه** — همان مسیری که صفحهٔ فروشگاه خود سایت کالا را با آن باز
+می‌کند (`/express-search/mobile/v2/product-variation/view?productVariationId=&vendorCode=`).
+`slug` فقط تزئینی است.
+
+- `https://snapp.market/supermarket/<slug>/<vendorCode>` فقط فروشگاه را باز می‌کند و کالا باید
+  دوباره جستجو شود.
+- `https://snapp.market/product/<slug>/<id>` صفحهٔ بین‌فروشگاهی است
+  (`/express-search/v1/pb/products/<id>`) و قیمت را از فروشگاهی که خودش انتخاب می‌کند نشان
+  می‌دهد؛ `productVariationId` بین فروشگاه‌ها مشترک است (`document_id` = `<id>-<vendorId>`).
+
+> قیمت «تخفیف نارنجی» فقط در فهرست کمپین (`/market-party/…`) دیده می‌شود. صفحهٔ کالا تخفیف
+> عادی فروشگاه را نشان می‌دهد — مثلاً روغن ورژن ۹۰۰ در `09eyeq`: کمپین ۲۵٪، صفحهٔ کالا ۲۰٪.
+> هر دو عدد از خود اسنپ‌مارکت است؛ فید با صفحهٔ کمپین خود فروشگاه ۱۲۰ از ۱۲۰ یکی بود.
+
+### هزینهٔ ارسال
+
+`delivery_fee` در `market-party` و `deliveryFee` در صفحهٔ فروشگاه
+(`/express-home/vendor/<code>?pro_discount=0`) یکی است. برای فروشگاه‌های پرو این عدد تخفیف‌خورده
+است و `initialDeliveryFee` عدد اصلی را دارد (مثلاً ۴٬۴۰۰ در برابر ۳۶٬۴۰۰).
 
 ---
 
@@ -296,13 +314,34 @@ GET /address/
 GET /products/search/shop/{shopId}/?q=<q>&latitude=<lat>&longitude=<lng>
 ```
 
-### لینک فروشگاه
-
-مسیر `/shop/<id>/` وجود ندارد و به صفحه‌ی اصلی برمی‌گردد. لینک درست، جستجوی محدود به فروشگاه است:
+### لینک محصول
 
 ```
-https://www.digikalajet.com/search/?q=<q>&shopId=<shopId>
+https://www.digikalajet.com/shop/product/<shopId>/<id>/
 ```
+
+`id` شناسهٔ ردیف فهرست است (`55003523`)، نه `product_id` کنار آن (`105113831527`) که اینجا ۴۰۴
+می‌دهد. داده‌اش از `GET /shop/<shopId>/product/<id>/` می‌آید.
+
+### فید شگفت‌انگیز («کهکشانی‌ها»)
+
+```http
+GET /post-process/amazing-widget-on-other-lines/1/?sourcePage=home&latitude=&longitude=
+GET /v2/products/galaxy/?pageName=home&latitude=&longitude=&page=<n>
+```
+
+- ردیف‌های galaxy در `data.result` است (قبلاً `data.products`)، پنج‌تا در هر صفحه.
+- `shop` در galaxy فقط `{ id }` است، و در هیچ‌کدام از این دو `delivery.cost` نیست. هزینهٔ ارسال،
+  نام فروشگاه و حداقل سبد (`cart_close_limit`) از هدر خود فروشگاه می‌آید:
+
+```http
+GET /shop/<shopId>/header/?latitude=&longitude=
+→ data.shop.delivery.cost   // ریال — همان عددی که صفحهٔ فروشگاه نشان می‌دهد
+```
+
+- **تخفیف دو بخش دارد.** صفحهٔ محصول فقط `vendor_discount + brand_discount` را نشان می‌دهد؛ بقیهٔ
+  `discount` سهم شگفت‌انگیز است و موقع پرداخت با «استفاده از تخفیف شگفت‌انگیز» کم می‌شود (به‌جای
+  کد تخفیف، نه همراهش). روی همهٔ ردیف‌های galaxy اندازه گرفته شد.
 
 ### اندپوینت‌های دیگر که دیده شد
 
@@ -395,8 +434,8 @@ GET /api/opex/v4/stores/nearby?latitude=<lat>&longitude=<lng>
         "distance": 0.36,
         "deliveryPrice": 0, // ریال
         "onDemandEta": "01:00:00", // ساعت:دقیقه:ثانیه
-        "operationPrice": 105000,
-        "packagingPrice": 30000,
+        "operationPrice": 105000, // ریال — «هزینه خدمات»، روی هر سفارش
+        "packagingPrice": 30000, // ریال — بسته‌بندی، روی هر سفارش
       },
     ],
   },
@@ -477,11 +516,18 @@ Authorization: Bearer <access_token>
 }
 ```
 
+> ارسال اوکالا معمولاً رایگان است، ولی سبد خرید سایت `operationPrice` و `packingPrice` را روی هر
+> سفارش اضافه می‌کند (حدود ۱۳ هزار تومان). این دو فقط در `stores/nearby` هست؛ ردیف کاروسل و
+> فروشگاهِ نتیجهٔ جستجو ندارندشان و باید با `storeId` join شوند.
+
 ### لینک محصول
 
 ```
-https://www.okala.com/product/<id>
+https://www.okala.com/store/<storeId>/product/<id>/<name>
 ```
+
+همان `singlePdpUrl` خود سایت. `https://www.okala.com/product/<id>` فروشگاه ندارد و بدون
+فروشگاهِ انتخاب‌شده «تمام شد» نشان می‌دهد.
 
 ### نکته‌هایی که موقع کشف به آن‌ها خوردیم
 

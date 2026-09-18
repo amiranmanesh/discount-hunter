@@ -30,14 +30,19 @@ function gatewayHeaders(authenticated: boolean): Record<string, string> {
   };
 }
 
-interface RawStore {
+export interface RawStore {
   storeId: number;
   storeName: string;
   logo?: string;
   rate?: number;
   distance?: number;
+  /** Rial. */
   deliveryPrice?: number;
-  onDemandEta?: string;
+  /** Rial. «هزینه خدمات» on the checkout page, charged on every order. */
+  operationPrice?: number;
+  /** Rial. The packaging charge, likewise on every order. */
+  packagingPrice?: number;
+  onDemandEta?: string | null;
   storeCategoryName?: string;
 }
 
@@ -59,19 +64,25 @@ interface RawProduct {
 }
 
 /** `"01:00:00"` → 60 minutes. */
-function etaMinutes(eta: string | undefined): number {
+function etaMinutes(eta: string | null | undefined): number {
   if (!eta) return 0;
   const [hours = '0', minutes = '0'] = eta.split(':');
   return Number(hours) * 60 + Number(minutes);
 }
 
 function toVendor(store: RawStore | undefined, fallbackName = 'فروشگاه اوکالا'): Vendor {
+  // Okala's delivery is usually free, but its checkout adds a service and a
+  // packaging charge to every order — together about 13,000 Toman, measured —
+  // so a "free" delivery is not a free trip. Only `stores/nearby` reports them.
+  const serviceFee =
+    (Number(store?.operationPrice ?? 0) + Number(store?.packagingPrice ?? 0)) / RIAL_TO_TOMAN;
   return {
     id: store?.storeId ?? '',
     code: String(store?.storeId ?? ''),
     name: store?.storeName || fallbackName,
     logo: store?.logo || '',
     deliveryFee: Number(store?.deliveryPrice ?? 0) / RIAL_TO_TOMAN,
+    ...(serviceFee > 0 ? { serviceFee } : {}),
     deliveryTime: etaMinutes(store?.onDemandEta),
     // "پرو" is a Snapp Market tier and Okala has no equivalent.
     isPro: false,
@@ -79,6 +90,17 @@ function toVendor(store: RawStore | undefined, fallbackName = 'فروشگاه ا
     rating: Number(store?.rate ?? 0),
     minOrder: 0,
   };
+}
+
+/**
+ * The product page inside one store — the route the site itself links a store's
+ * product to. The bare `/product/<id>` has no store, so it opens at whichever
+ * store the visitor last picked, or as «تمام شد» with none. The name is
+ * decorative.
+ */
+export function productUrl(storeId: string | number, id: string | number, name = ''): string {
+  const slug = encodeURIComponent(name.trim().replace(/\s+/g, '-'));
+  return `https://www.okala.com/store/${storeId}/product/${id}/${slug}`;
 }
 
 function toOffer(product: RawProduct, vendor: Vendor): Offer {
@@ -106,7 +128,7 @@ function toOffer(product: RawProduct, vendor: Vendor): Offer {
     stock: product.hasQuantity === false ? 0 : Number(product.quantity ?? 99),
     outOfStock: product.hasQuantity === false || Number(product.quantity ?? 1) <= 0,
     vendor,
-    url: `https://www.okala.com/product/${product.id}`,
+    url: productUrl(product.storeId ?? vendor.code, product.id, product.name),
     // These rows come from the same calls the Okala site makes for the user, so
     // they need no separate confirmation step.
     verified: true,
@@ -205,16 +227,20 @@ export async function storesNearby(location: Location): Promise<RawStore[]> {
  * The home page's offer carousels — around two hundred discounted products in
  * one call, which is what Okala contributes to the feed. It is not paginated, so
  * it seeds the list rather than extending it.
+ *
+ * A carousel row names its store and nothing else, so the stores it was asked
+ * about supply the delivery and service charges, the rating and the estimate.
  */
-export async function offers(location: Location, storeIds: number[]): Promise<Offer[]> {
-  if (!storeIds.length) return [];
+export async function offers(location: Location, stores: RawStore[]): Promise<Offer[]> {
+  if (!stores.length) return [];
 
   const query = new URLSearchParams({
     pageType: 'HomePage',
     lat: String(location.lat),
     lon: String(location.lng),
   });
-  for (const id of storeIds) query.append('storeIds', String(id));
+  for (const store of stores) query.append('storeIds', String(store.storeId));
+  const byId = new Map(stores.map((store) => [store.storeId, store]));
 
   const json = await request<{
     carousels?: { title?: string; products?: RawProduct[] }[];
@@ -223,26 +249,25 @@ export async function offers(location: Location, storeIds: number[]): Promise<Of
   const out: Offer[] = [];
   for (const carousel of json.carousels ?? []) {
     for (const product of carousel.products ?? []) {
-      out.push(
-        toOffer(
-          product,
-          toVendor(
-            { storeId: product.storeId ?? 0, storeName: product.storeName ?? '' },
-            product.storeName || 'فروشگاه اوکالا',
-          ),
-        ),
-      );
+      const store = byId.get(product.storeId ?? 0) ?? {
+        storeId: product.storeId ?? 0,
+        storeName: product.storeName ?? '',
+      };
+      out.push(toOffer(product, toVendor(store, product.storeName || 'فروشگاه اوکالا')));
     }
   }
   return out;
 }
 
 /**
- * Search across every nearby store. Results arrive grouped by store, which is
- * where the delivery fee and rating come from.
+ * Search across every nearby store. Results arrive grouped by store, with the
+ * delivery fee but without the service and packaging charges, which come from
+ * the same `stores/nearby` listing the feed uses.
  */
 export async function search(query: string, location: Location, token: string): Promise<Offer[]> {
-  const json = await request<{
+  // Started first so the search is the first request out; the store listing
+  // only adds charges, and a search without them is still a search.
+  const found = request<{
     data?: Record<string, { store?: RawStore; products?: RawProduct[] }>;
     success?: boolean;
     errorMessage?: string;
@@ -251,13 +276,23 @@ export async function search(query: string, location: Location, token: string): 
     headers: gatewayHeaders(true),
     query: { q: query, lat: String(location.lat), lon: String(location.lng), v4Stores: 'true' },
   });
+  const nearby = storesNearby(location).catch((): RawStore[] => []);
+  const [json, stores] = await Promise.all([found, nearby]);
 
   if (json?.success === false) throw new ApiError(json.errorMessage || 'جستجوی اوکالا ناموفق بود');
 
+  const charges = new Map(stores.map((store) => [store.storeId, store]));
   const groups = Object.values(json.data ?? {});
   const out: Offer[] = [];
   for (const group of groups) {
-    const vendor = toVendor(group.store);
+    const listed = group.store ? charges.get(group.store.storeId) : undefined;
+    const vendor = toVendor(
+      group.store && {
+        ...group.store,
+        operationPrice: listed?.operationPrice,
+        packagingPrice: listed?.packagingPrice,
+      },
+    );
     for (const product of group.products ?? []) out.push(toOffer(product, vendor));
   }
   return out;

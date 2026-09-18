@@ -1,4 +1,4 @@
-import type { Offer, SortMode } from './types';
+import type { Offer, SortMode, Vendor } from './types';
 
 export const SORT_MODES: Record<SortMode, string> = {
   'best-discount': 'بیشترین تخفیف ← پرو ← کمترین ارسال',
@@ -6,8 +6,13 @@ export const SORT_MODES: Record<SortMode, string> = {
   'lowest-delivery': 'کمترین هزینه ارسال',
 };
 
+/** Toman. Everything an order from this store costs on top of the items. */
+export function orderFees(vendor: Vendor | undefined): number {
+  return (vendor?.deliveryFee ?? 0) + (vendor?.serviceFee ?? 0);
+}
+
 export function totalCost(offer: Offer): number {
-  return offer.finalPrice + (offer.vendor?.deliveryFee ?? 0);
+  return offer.finalPrice + orderFees(offer.vendor);
 }
 
 /** Groups discounts into 5% buckets so a 1% edge never beats a Pro vendor. */
@@ -19,7 +24,7 @@ const COMPARATORS: Record<SortMode, (a: Offer, b: Offer) => number> = {
   'best-discount': (a, b) =>
     discountBucket(b) - discountBucket(a) ||
     Number(b.vendor?.isPro) - Number(a.vendor?.isPro) ||
-    (a.vendor?.deliveryFee ?? 0) - (b.vendor?.deliveryFee ?? 0) ||
+    orderFees(a.vendor) - orderFees(b.vendor) ||
     (b.discountPercent || 0) - (a.discountPercent || 0) ||
     a.finalPrice - b.finalPrice,
 
@@ -29,7 +34,7 @@ const COMPARATORS: Record<SortMode, (a: Offer, b: Offer) => number> = {
     Number(b.vendor?.isPro) - Number(a.vendor?.isPro),
 
   'lowest-delivery': (a, b) =>
-    (a.vendor?.deliveryFee ?? 0) - (b.vendor?.deliveryFee ?? 0) ||
+    orderFees(a.vendor) - orderFees(b.vendor) ||
     Number(b.vendor?.isPro) - Number(a.vendor?.isPro) ||
     (b.discountPercent || 0) - (a.discountPercent || 0) ||
     a.finalPrice - b.finalPrice,

@@ -6,6 +6,37 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **«باز کردن» opens the product, not just its store.** Snapp Market links went
+  to the store's front page and the product had to be searched for again; Okala
+  links had no store at all and opened as «تمام شد»; Digikala Jet links were a
+  search. Each now opens the product page inside the store that sells it.
+- **Digikala Jet's شگفت‌انگیز offers showed free delivery.** Neither the
+  شگفت‌انگیز row nor the galaxy listing says what delivery costs, and the gap was
+  read as 0 — while the shop's own page charged 30,000–45,000 Toman. The cost,
+  the shop's name and its minimum basket now come from the shop's header, one
+  request per shop, and a cost that cannot be read says so instead of «رایگان».
+- **Okala's service and packaging charges were missing.** Its checkout adds
+  about 13,000 Toman to every order even when delivery is free. They are now
+  shown on the card and counted in the total and in every ordering by cost.
+- **The feed stopped after Digikala Jet's first row.** The galaxy listing moved
+  its rows from `products` to `result`, so the feed read none of them.
+- **Discounts went stale in an app left open.** Nothing asked again once the
+  feed had loaded, so an installed app brought back to the front showed hours-old
+  offers. Coming back after five minutes now starts the feed over, the feed says
+  when it was fetched, and **تازه‌سازی** does the same on demand.
+- **Choosing a delivery location needs a confirmation.** A tap on an address,
+  on «استفاده از موقعیت فعلی» or on the coordinates button used to move the
+  location at once. Each now only proposes a point; **تأیید** applies it and
+  **انصراف** drops it, and the current address is marked. The coordinate fields
+  also show the saved point instead of an empty placeholder.
+
+### Changed
+
+- A Digikala Jet card whose discount is partly taken at checkout says what the
+  product page will show, since that page leaves the شگفت‌انگیز share out.
+
 ## [3.1.0] — 2026-09-17
 
 ### Changed

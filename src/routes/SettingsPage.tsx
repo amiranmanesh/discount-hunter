@@ -5,13 +5,27 @@ import { useQuery } from '@tanstack/react-query';
 import * as jet from '../api/jet';
 import { useSettings } from '../store/settings';
 import { useTokens } from '../hooks/useTokens';
-import type { Address } from '../core/types';
+import type { Location } from '../core/types';
 
+/**
+ * The same choice: the same point, to the precision any platform stores one
+ * with, under the same name — two saved addresses can share a point.
+ */
+function sameChoice(a: Location | null, b: Location | null): boolean {
+  if (!a || !b) return false;
+  return Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6 && a.label === b.label;
+}
+
+/**
+ * Every way of choosing a point here — GPS, a saved address, typed coordinates —
+ * only proposes it. Nothing changes until «تأیید» is pressed, because every
+ * price and delivery fee in the app hangs off this point, and a stray tap on a
+ * long list of addresses used to move it without a word.
+ */
 export default function SettingsPage() {
   const { location, setLocation } = useSettings();
   const { data: tokens } = useTokens();
-  const [lat, setLat] = useState(location ? String(location.lat) : '');
-  const [lng, setLng] = useState(location ? String(location.lng) : '');
+  const [draft, setDraft] = useState<Location | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
   const addresses = useQuery({
@@ -20,6 +34,21 @@ export default function SettingsPage() {
     queryFn: () => jet.savedAddresses(tokens!.jet!),
     staleTime: 10 * 60_000,
   });
+
+  // A proposal that is already the current point is no proposal at all.
+  const pending = draft && !sameChoice(draft, location) ? draft : null;
+
+  const propose = (next: Location) => {
+    setDraft(next);
+    setStatus(null);
+  };
+
+  const confirm = () => {
+    if (!pending) return;
+    setLocation(pending);
+    setDraft(null);
+    setStatus(`موقعیت روی «${pending.label}» تنظیم شد`);
+  };
 
   const locate = () => {
     if (!navigator.geolocation) {
@@ -39,41 +68,15 @@ export default function SettingsPage() {
     setStatus('در حال گرفتن موقعیت…');
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const next = {
+        propose({
           lat: Number(position.coords.latitude.toFixed(6)),
           lng: Number(position.coords.longitude.toFixed(6)),
           label: 'موقعیت فعلی',
-        };
-        setLat(String(next.lat));
-        setLng(String(next.lng));
-        setLocation(next);
-        setStatus('موقعیت از GPS گرفته شد');
+        });
       },
       (error) => setStatus(`موقعیت‌یابی ناموفق بود: ${error.message}`),
       { enableHighAccuracy: true, timeout: 10_000 },
     );
-  };
-
-  const saveManual = () => {
-    const parsedLat = Number(lat);
-    const parsedLng = Number(lng);
-    if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) {
-      setStatus('مختصات معتبر نیست');
-      return;
-    }
-    setLocation({
-      lat: parsedLat,
-      lng: parsedLng,
-      label: `${parsedLat.toFixed(4)}, ${parsedLng.toFixed(4)}`,
-    });
-    setStatus('موقعیت ذخیره شد');
-  };
-
-  const pick = (address: Address) => {
-    setLat(String(address.lat));
-    setLng(String(address.lng));
-    setLocation({ lat: address.lat, lng: address.lng, label: address.label });
-    setStatus(`موقعیت روی «${address.label}» تنظیم شد`);
   };
 
   return (
@@ -83,40 +86,28 @@ export default function SettingsPage() {
       <section className="card stack">
         <b>موقعیت تحویل</b>
         <p className="muted" style={{ margin: 0 }}>
-          هر قیمت، هزینهٔ ارسال و فهرست فروشگاه به این نقطه بستگی دارد.
-          {location && ` الان: ${location.label}`}
+          هر قیمت، هزینهٔ ارسال و فهرست فروشگاه به این نقطه بستگی دارد. انتخاب کن و بعد «تأیید» را
+          بزن.
+        </p>
+        <p className="current-location">
+          <span className="muted">الان:</span> <b>{location ? location.label : 'تنظیم نشده'}</b>
         </p>
 
         <button type="button" className="button button--primary button--block" onClick={locate}>
           استفاده از موقعیت فعلی
         </button>
 
-        <div className="row">
-          <label className="field">
-            عرض جغرافیایی
-            <input
-              inputMode="decimal"
-              value={lat}
-              onChange={(event) => setLat(event.target.value)}
-              placeholder="35.7223"
-            />
-          </label>
-          <label className="field">
-            طول جغرافیایی
-            <input
-              inputMode="decimal"
-              value={lng}
-              onChange={(event) => setLng(event.target.value)}
-              placeholder="51.4781"
-            />
-          </label>
-        </div>
-        <button type="button" className="button" onClick={saveManual}>
-          ذخیرهٔ مختصات
-        </button>
+        {/* Keyed on the stored point so the fields show it once storage has
+            been read, rather than the empty state the page first renders. */}
+        <ManualCoordinates
+          key={location ? `${location.lat},${location.lng}` : 'none'}
+          initial={location}
+          onPick={propose}
+          onInvalid={() => setStatus('مختصات معتبر نیست')}
+        />
 
         {status && (
-          <p className="note" style={{ margin: 0 }}>
+          <p className="note" style={{ margin: 0 }} role="status">
             {status}
           </p>
         )}
@@ -127,21 +118,28 @@ export default function SettingsPage() {
           <b>آدرس‌های دیجی‌کالا جت</b>
           {addresses.isPending && <p className="muted">در حال خواندن…</p>}
           {addresses.data?.length === 0 && <p className="muted">آدرسی ذخیره نشده.</p>}
-          {addresses.data?.map((address) => (
-            <button
-              key={address.id}
-              type="button"
-              className="button"
-              style={{ justifyContent: 'flex-start', textAlign: 'start' }}
-              onClick={() => pick(address)}
-            >
-              <span>
-                <b>{address.label}</b>
-                <br />
+          {addresses.data?.map((address) => {
+            const current = sameChoice(address, location);
+            const chosen = sameChoice(address, pending);
+            return (
+              <button
+                key={address.id}
+                type="button"
+                className="address-option"
+                aria-pressed={chosen}
+                onClick={() =>
+                  propose({ lat: address.lat, lng: address.lng, label: address.label })
+                }
+              >
+                <span className="address-option-head">
+                  <b>{address.label}</b>
+                  {current && <span className="address-tag address-tag--current">✓ فعلی</span>}
+                  {chosen && <span className="address-tag">انتخاب‌شده</span>}
+                </span>
                 <span className="muted">{address.address}</span>
-              </span>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </section>
       )}
 
@@ -153,6 +151,77 @@ export default function SettingsPage() {
           دیجی‌کالا ندارد.
         </p>
       </section>
+
+      {pending && (
+        <div className="confirm-bar" role="region" aria-label="تأیید موقعیت">
+          <span className="confirm-bar-text">
+            <span className="muted">موقعیت جدید:</span> <b>{pending.label}</b>
+          </span>
+          <button type="button" className="button" onClick={() => setDraft(null)}>
+            انصراف
+          </button>
+          <button type="button" className="button button--primary" onClick={confirm}>
+            تأیید
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ManualCoordinates({
+  initial,
+  onPick,
+  onInvalid,
+}: {
+  initial: Location | null;
+  onPick: (location: Location) => void;
+  onInvalid: () => void;
+}) {
+  const [lat, setLat] = useState(initial ? String(initial.lat) : '');
+  const [lng, setLng] = useState(initial ? String(initial.lng) : '');
+
+  const pick = () => {
+    const parsedLat = Number(lat);
+    const parsedLng = Number(lng);
+    if (!lat.trim() || !lng.trim() || !Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) {
+      onInvalid();
+      return;
+    }
+    onPick({
+      lat: parsedLat,
+      lng: parsedLng,
+      label: `${parsedLat.toFixed(4)}, ${parsedLng.toFixed(4)}`,
+    });
+  };
+
+  return (
+    <>
+      <div className="row">
+        <label className="field">
+          عرض جغرافیایی
+          <input
+            inputMode="decimal"
+            dir="ltr"
+            value={lat}
+            onChange={(event) => setLat(event.target.value)}
+            placeholder="35.7223"
+          />
+        </label>
+        <label className="field">
+          طول جغرافیایی
+          <input
+            inputMode="decimal"
+            dir="ltr"
+            value={lng}
+            onChange={(event) => setLng(event.target.value)}
+            placeholder="51.4781"
+          />
+        </label>
+      </div>
+      <button type="button" className="button" onClick={pick}>
+        استفاده از این مختصات
+      </button>
     </>
   );
 }

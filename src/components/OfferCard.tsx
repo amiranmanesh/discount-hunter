@@ -14,13 +14,22 @@ function OfferCard({ offer, highlight = false }: Props) {
   const meta: string[] = [];
   if (offer.vendor.isPro) meta.push('⚡ پرو');
   meta.push(
-    offer.vendor.deliveryFee > 0 ? `ارسال ${toman(offer.vendor.deliveryFee)}` : 'ارسال رایگان',
+    offer.vendor.deliveryFeeUnknown
+      ? 'هزینهٔ ارسال نامعلوم'
+      : offer.vendor.deliveryFee > 0
+        ? `ارسال ${toman(offer.vendor.deliveryFee)}`
+        : 'ارسال رایگان',
   );
+  if (offer.vendor.serviceFee) meta.push(`خدمات و بسته‌بندی ${toman(offer.vendor.serviceFee)}`);
   if (offer.vendor.deliveryTime) meta.push(`${money.format(offer.vendor.deliveryTime)} دقیقه`);
   if (offer.vendor.rating) meta.push(`★ ${offer.vendor.rating}`);
   if (offer.vendor.isOpen === false) meta.push('بسته');
 
-  const totals: string[] = [`جمع با ارسال: ${toman(totalCost(offer))}`];
+  const totals: string[] = [
+    offer.vendor.deliveryFeeUnknown
+      ? 'جمع با ارسال: نامعلوم'
+      : `جمع با ارسال: ${toman(totalCost(offer))}`,
+  ];
   if (offer.verified) totals.push('✓ قیمت از خود فروشگاه');
   if (offer.vendor.minOrder) totals.push(`حداقل سبد ${toman(offer.vendor.minOrder)}`);
 
@@ -50,6 +59,13 @@ function OfferCard({ offer, highlight = false }: Props) {
           <strong>{toman(offer.finalPrice)}</strong>
           {offer.discountAmount > 0 && <s>{money.format(offer.price)}</s>}
         </div>
+
+        {offer.pagePrice !== undefined && (
+          <p className="offer-note">
+            صفحهٔ محصول {toman(offer.pagePrice)} نشان می‌دهد؛ بقیهٔ تخفیف موقع پرداخت با «استفاده از
+            تخفیف شگفت‌انگیز» کم می‌شود.
+          </p>
+        )}
 
         <div className="offer-vendor">
           <b>{offer.vendor.name}</b>

@@ -9,12 +9,14 @@
 import * as snapp from '../api/snapp';
 import * as jet from '../api/jet';
 import * as okala from '../api/okala';
-import { dedupe } from './rank';
+import { dedupe, orderFees } from './rank';
 import type { Location, Offer, PlatformId } from './types';
 
 export interface DealsPage {
   offers: Offer[];
   page: number;
+  /** Epoch ms. When this page was asked for, so the feed can say how old it is. */
+  fetchedAt: number;
   hasMore: boolean;
   firstOrderSkipped: number;
   errors: string[];
@@ -42,6 +44,7 @@ export async function dealsPage(
   tokens: DealsTokens = {},
 ): Promise<DealsPage> {
   const { snapp: snappToken, jet: jetToken } = tokens;
+  const fetchedAt = Date.now();
   const errors: string[] = [];
   const collected: Offer[] = [];
   let firstOrderSkipped = 0;
@@ -68,17 +71,17 @@ export async function dealsPage(
   if (options.sources.jet) {
     jobs.push(
       (async () => {
-        if (page === 0) {
-          const highlights = await jet.amazingHighlights(location, jetToken);
-          collected.push(...highlights);
-        }
+        const found: Offer[] = [];
+        if (page === 0) found.push(...(await jet.amazingHighlights(location, jetToken)));
         const first = page * JET_PAGES_PER_FEED_PAGE + 1;
         for (let p = first; p < first + JET_PAGES_PER_FEED_PAGE; p += 1) {
           const result = await jet.amazingPage(location, p, jetToken);
-          collected.push(...result.offers);
+          found.push(...result.offers);
           jetHasMore = result.hasMore;
           if (!result.hasMore) break;
         }
+        // Neither listing says what delivery costs; the shops' own pages do.
+        collected.push(...(await jet.withShops(found, location, jetToken)));
       })().catch((error) => {
         errors.push(`دیجی‌کالا جت: ${error instanceof Error ? error.message : String(error)}`);
       }),
@@ -91,8 +94,12 @@ export async function dealsPage(
     jobs.push(
       (async () => {
         const stores = await okala.storesNearby(location);
-        const storeIds = stores.map((store) => store.storeId).filter(Boolean);
-        collected.push(...(await okala.offers(location, storeIds)));
+        collected.push(
+          ...(await okala.offers(
+            location,
+            stores.filter((store) => store.storeId),
+          )),
+        );
       })().catch((error) => {
         errors.push(`اوکالا: ${error instanceof Error ? error.message : String(error)}`);
       }),
@@ -109,7 +116,14 @@ export async function dealsPage(
       (!options.onlyOpen || offer.vendor.isOpen !== false),
   );
 
-  return { offers, page, hasMore: snappHasMore || jetHasMore, firstOrderSkipped, errors };
+  return {
+    offers,
+    page,
+    fetchedAt,
+    hasMore: snappHasMore || jetHasMore,
+    firstOrderSkipped,
+    errors,
+  };
 }
 
 /** Deepest discount first, then the cheaper trip, then the cheaper item. */
@@ -117,7 +131,7 @@ export function sortByDiscount(offers: Offer[]): Offer[] {
   return [...offers].sort(
     (a, b) =>
       b.discountPercent - a.discountPercent ||
-      a.vendor.deliveryFee - b.vendor.deliveryFee ||
+      orderFees(a.vendor) - orderFees(b.vendor) ||
       a.finalPrice - b.finalPrice,
   );
 }

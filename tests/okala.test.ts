@@ -28,6 +28,14 @@ const product = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const nearby = (storeId: number, storeName = 'فروشگاه'): okala.RawStore => ({
+  storeId,
+  storeName,
+  rate: 4.4,
+  deliveryPrice: 0,
+  onDemandEta: '01:00:00',
+});
+
 const store = {
   storeId: 8836,
   storeName: 'پلاتینیوم',
@@ -81,6 +89,34 @@ describe('search', () => {
     expect(headers['x-skip-authorization']).toBeUndefined();
   });
 
+  it('adds the service and packaging charges the store listing reports', async () => {
+    mockJson((url) =>
+      url.includes('/stores/nearby')
+        ? { data: { stores: [{ ...store, operationPrice: 99000, packagingPrice: 30000 }] } }
+        : { data: { 0: { store, products: [product()] } }, success: true },
+    );
+
+    const [offer] = await okala.search('پفک', LOCATION, 'token');
+    expect(offer.vendor.deliveryFee).toBe(25000);
+    expect(offer.vendor.serviceFee).toBe(12900);
+    expect(offer.url).toMatch(/^https:\/\/www\.okala\.com\/store\/8836\/product\/190926\//);
+  });
+
+  it('still answers when the store listing fails', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      if (String(input).includes('/stores/nearby')) throw new TypeError('network');
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({ data: { 0: { store, products: [product()] } } }),
+      } as unknown as Response;
+    });
+
+    const [offer] = await okala.search('پفک', LOCATION, 'token');
+    expect(offer.vendor.serviceFee).toBeUndefined();
+  });
+
   it('surfaces the API message when the search is rejected', async () => {
     mockJson(() => ({ success: false, errorMessage: 'خطای اوکالا' }));
     await expect(okala.search('پفک', LOCATION, 'token')).rejects.toThrow('خطای اوکالا');
@@ -118,8 +154,35 @@ describe('offers', () => {
       ],
     }));
 
-    const offers = await okala.offers(LOCATION, [1, 2]);
+    const offers = await okala.offers(LOCATION, [nearby(1, 'یک'), nearby(2, 'دو')]);
     expect(offers.map((o) => o.vendor.name)).toEqual(['یک', 'دو']);
+  });
+
+  it('prices each row with its store: delivery, service and packaging', async () => {
+    mockJson(() => ({
+      carousels: [{ products: [product({ storeId: 5590, storeName: 'شهید مدنی' })] }],
+    }));
+
+    const [offer] = await okala.offers(LOCATION, [
+      {
+        ...nearby(5590, 'شهید مدنی'),
+        deliveryPrice: 0,
+        operationPrice: 99000,
+        packagingPrice: 30000,
+      },
+    ]);
+
+    // A carousel row carries no charges of its own; before the join every one
+    // of them read as a free trip.
+    expect(offer.vendor.deliveryFee).toBe(0);
+    expect(offer.vendor.serviceFee).toBe(12900);
+    expect(offer.vendor.rating).toBe(4.4);
+  });
+
+  it('links to the product inside its own store', async () => {
+    mockJson(() => ({ carousels: [{ products: [product({ id: 753780, storeId: 5590 })] }] }));
+    const [offer] = await okala.offers(LOCATION, [nearby(5590, 'شهید مدنی')]);
+    expect(offer.url).toMatch(/^https:\/\/www\.okala\.com\/store\/5590\/product\/753780\//);
   });
 
   it('asks for nothing when there are no stores in range', async () => {
@@ -130,7 +193,7 @@ describe('offers', () => {
 
   it('repeats storeIds the way the gateway expects, and needs no token', async () => {
     const fetchMock = mockJson(() => ({ carousels: [] }));
-    await okala.offers(LOCATION, [11, 22, 33]);
+    await okala.offers(LOCATION, [nearby(11), nearby(22), nearby(33)]);
 
     const url = new URL(String(fetchMock.mock.calls[0][0]), 'http://localhost');
     expect(url.searchParams.getAll('storeIds')).toEqual(['11', '22', '33']);

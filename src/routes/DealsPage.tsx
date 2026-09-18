@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { dealsPage, sortByDiscount } from '../core/deals';
 import OfferCard from '../components/OfferCard';
 import LocationPrompt from '../components/LocationPrompt';
@@ -10,6 +10,15 @@ import { useSettings } from '../store/settings';
 import { useTokens } from '../hooks/useTokens';
 
 const money = new Intl.NumberFormat('fa-IR');
+const clock = new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' });
+
+/**
+ * How old the feed may get before coming back to it starts it over. Campaign
+ * prices move by the hour and stock runs out faster; an installed app that sat
+ * in the background overnight was showing yesterday's discounts, because
+ * nothing ever asked again.
+ */
+const FRESH_FOR = 5 * 60_000;
 
 /**
  * The discount feed: every campaign offer near you, deepest discount first,
@@ -19,20 +28,18 @@ export default function DealsPage() {
   const { location, sources, minDiscount, onlyOpen, patch } = useSettings();
   const { data: tokens, isPending: tokensPending } = useTokens();
   const sentinel = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   const enabled =
     Boolean(location) && !tokensPending && Boolean(tokens?.snapp || sources.jet || sources.okala);
 
+  const queryKey = useMemo(
+    () => ['deals', location?.lat, location?.lng, sources, minDiscount, onlyOpen, tokens?.snapp],
+    [location?.lat, location?.lng, sources, minDiscount, onlyOpen, tokens?.snapp],
+  );
+
   const query = useInfiniteQuery({
-    queryKey: [
-      'deals',
-      location?.lat,
-      location?.lng,
-      sources,
-      minDiscount,
-      onlyOpen,
-      tokens?.snapp,
-    ],
+    queryKey,
     enabled,
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
@@ -49,6 +56,29 @@ export default function DealsPage() {
     () => sortByDiscount((query.data?.pages ?? []).flatMap((page) => page.offers)),
     [query.data],
   );
+
+  // The first page's time is the feed's age: later pages only extend it.
+  const fetchedAt = query.data?.pages[0]?.fetchedAt ?? 0;
+
+  // Starting over rather than refetching in place: a refetch would re-ask for
+  // every page scrolled so far, one after another, before showing anything.
+  const refresh = useCallback(
+    () => queryClient.resetQueries({ queryKey, exact: true }),
+    [queryClient, queryKey],
+  );
+
+  // Coming back to the app — a tab switch, or an installed app brought back to
+  // the front — starts a feed older than FRESH_FOR over.
+  useEffect(() => {
+    if (!fetchedAt) return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && Date.now() - fetchedAt > FRESH_FOR) {
+        void refresh();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchedAt, refresh]);
 
   // Endless scroll: fetch the next page when the sentinel comes into view.
   useEffect(() => {
@@ -141,10 +171,21 @@ export default function DealsPage() {
 
       {offers.length > 0 && (
         <>
-          <p className="muted" style={{ marginTop: 0 }}>
-            {money.format(offers.length)} پیشنهاد
-            {skipped > 0 && ` · ${money.format(skipped)} آیتم «ویژه خرید اول» نادیده گرفته شد`}
-          </p>
+          <div className="feed-status">
+            <p className="muted">
+              {money.format(offers.length)} پیشنهاد
+              {fetchedAt > 0 && ` · به‌روز شده ساعت ${clock.format(fetchedAt)}`}
+              {skipped > 0 && ` · ${money.format(skipped)} آیتم «ویژه خرید اول» نادیده گرفته شد`}
+            </p>
+            <button
+              type="button"
+              className="button"
+              onClick={() => void refresh()}
+              disabled={query.isFetching}
+            >
+              {query.isFetching && !query.isFetchingNextPage ? 'در حال تازه‌سازی…' : 'تازه‌سازی'}
+            </button>
+          </div>
           <div className="offer-grid">
             {offers.map((offer, index) => (
               <OfferCard

@@ -505,6 +505,15 @@ a {
   font-size: 11.5px;
 }
 
+.offer-note {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--jet-soft);
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+
 .offer-vendor {
   font-size: 11.5px;
   color: var(--muted);
@@ -551,6 +560,24 @@ a {
 }
 
 /* Filters -------------------------------------------------------------- */
+
+.feed-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.feed-status .muted {
+  margin: 0;
+}
+
+.feed-status .button {
+  flex: none;
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
 
 .filters {
   display: flex;
@@ -678,6 +705,93 @@ a {
   .progress::after,
   .skeleton {
     animation: none;
+  }
+}
+
+/* Delivery location ---------------------------------------------------- */
+
+.current-location {
+  margin: 0;
+  font-size: 13.5px;
+}
+
+.address-option {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: start;
+  cursor: pointer;
+}
+
+.address-option:hover {
+  border-color: var(--orange);
+}
+
+.address-option[aria-pressed='true'] {
+  border-color: var(--orange);
+  background: var(--orange-soft);
+  box-shadow: inset 0 0 0 1px var(--orange);
+}
+
+.address-option-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+}
+
+.address-tag {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--orange);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.address-tag--current {
+  background: var(--okala-soft);
+  color: var(--ok);
+}
+
+/* Pinned just above the bottom navigation, so a choice made far down a long
+   list of addresses can be confirmed where it was made. */
+.confirm-bar {
+  position: sticky;
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--orange);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.confirm-bar-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.confirm-bar .button {
+  flex: none;
+}
+
+@media (min-width: 860px) {
+  .confirm-bar {
+    bottom: 16px;
   }
 }
 

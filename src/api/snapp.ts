@@ -160,6 +160,18 @@ function toVendor(raw: RawVendor): Vendor {
 }
 
 /**
+ * The product's own page inside the store that sells it — the route the site's
+ * store page opens a product on. `/product/<name>/<id>` alone is the
+ * cross-store page, which prices the product at whichever store it picks, and
+ * the bare store link leaves the product to be searched for again. The name in
+ * the path is decorative; the vendor code and the id do the routing.
+ */
+export function productUrl(vendor: Pick<Vendor, 'name' | 'code'>, productId: string | number) {
+  const slug = encodeURIComponent((vendor.name || 'store').trim().replace(/\s+/g, '-'));
+  return `https://snapp.market/supermarket/${slug}/${vendor.code}/product-details/${productId}`;
+}
+
+/**
  * `segment` decides who can actually buy at this price. Measured against a live
  * campaign: `products` is 100% `general` and tops out near 44% off, while
  * `personalizedProducts` — the "ویژه خرید اول" shelf — mixes in `new_user` rows
@@ -170,7 +182,6 @@ export function toOffer(product: RawProduct, vendor: Vendor): Offer {
   const price = Number(product.price ?? 0);
   const discount = Number(product.discount ?? 0);
   const segment = product.segment || 'general';
-  const slug = encodeURIComponent((vendor.name || 'store').replace(/\s+/g, '-'));
 
   return {
     platform: 'snapp',
@@ -190,7 +201,7 @@ export function toOffer(product: RawProduct, vendor: Vendor): Offer {
     stock: Number(product.stock ?? 0),
     outOfStock: Boolean(product.is_out_of_stock),
     vendor: { ...vendor, minOrder: Number(product.minOrder ?? vendor.minOrder ?? 0) },
-    url: `https://snapp.market/supermarket/${slug}/${vendor.code}`,
+    url: productUrl(vendor, product.productVariationId),
   };
 }
 
@@ -466,7 +477,6 @@ export async function searchCatalogue(
     if (!vendor) continue; // this vendor does not deliver here
     const price = Number(item.price ?? 0);
     const discount = Number(item.discount ?? 0);
-    const slug = encodeURIComponent((vendor.name || 'store').replace(/\s+/g, '-'));
 
     offers.push({
       platform: 'snapp',
@@ -486,7 +496,7 @@ export async function searchCatalogue(
       stock: 99,
       outOfStock: false,
       vendor,
-      url: `https://snapp.market/supermarket/${slug}/${vendor.code}`,
+      url: productUrl(vendor, item.id),
     });
   }
   return offers;

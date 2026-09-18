@@ -7,6 +7,16 @@ export interface Vendor {
   logo: string;
   /** Toman. Already reflects the Pro discount where the platform applies one. */
   deliveryFee: number;
+  /**
+   * True when the listing did not say what delivery costs and nothing filled it
+   * in since. `deliveryFee` is then a placeholder 0, never "free".
+   */
+  deliveryFeeUnknown?: boolean;
+  /**
+   * Toman. What the platform adds to every order on top of delivery — Okala's
+   * service and packaging charges. Absent where there is no such charge.
+   */
+  serviceFee?: number;
   deliveryTime: number;
   isPro: boolean;
   isOpen: boolean;
@@ -36,8 +46,14 @@ export interface Offer {
   stock: number;
   outOfStock: boolean;
   vendor: Vendor;
-  /** Deep link to the product's store. */
+  /** Deep link to the product, inside the store that sells it at this price. */
   url: string;
+  /**
+   * Toman. The price the product page itself shows, when the platform takes the
+   * rest of the discount off only at checkout — Digikala Jet's شگفت‌انگیز.
+   * Absent when the product page already shows `finalPrice`.
+   */
+  pagePrice?: number;
   /** Confirmed against the store's own shelf, not just the campaign feed. */
   verified?: boolean;
   verifiedBy?: 'shelf' | 'search';
