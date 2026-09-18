@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.1.1] — 2026-09-18
+
 ### Fixed
 
 - **«باز کردن» opens the product, not just its store.** Snapp Market links went
