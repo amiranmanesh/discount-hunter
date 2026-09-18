@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as jet from '../api/jet';
 import { useSettings } from '../store/settings';
 import { useTokens } from '../hooks/useTokens';
 import type { Location } from '../core/types';
+import { detectPlatform, install, usePwa, type Platform } from '../pwa/state';
 
 /**
  * The same choice: the same point, to the precision any platform stores one
@@ -80,7 +81,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <>
+    <div className="page-narrow">
       <h1 className="page-title">تنظیمات</h1>
 
       <section className="card stack">
@@ -143,6 +144,8 @@ export default function SettingsPage() {
         </section>
       )}
 
+      <InstallCard />
+
       <section className="card stack" style={{ marginTop: 10 }}>
         <b>هزینهٔ ارسال</b>
         <label className="toggle">
@@ -183,7 +186,7 @@ export default function SettingsPage() {
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -241,5 +244,73 @@ function ManualCoordinates({
         استفاده از این مختصات
       </button>
     </>
+  );
+}
+
+const never = () => () => {};
+
+/**
+ * How to put the app on the home screen, for the browser in hand: Chrome and
+ * Edge can be asked directly; Safari has no such call, so it gets the steps.
+ */
+function InstallCard() {
+  const standalone = usePwa((state) => state.standalone);
+  const canPrompt = usePwa((state) => Boolean(state.installPrompt));
+  // Read after hydration: the server has no browser to ask.
+  const platform = useSyncExternalStore<Platform | null>(never, detectPlatform, () => null);
+  const secure = useSyncExternalStore(
+    never,
+    () => window.isSecureContext,
+    () => true,
+  );
+  const [result, setResult] = useState<string | null>(null);
+
+  if (standalone || !platform) return null;
+
+  return (
+    <section className="card stack" style={{ marginTop: 10 }}>
+      <b>نصب برنامه</b>
+      <p className="muted" style={{ margin: 0 }}>
+        نصب‌شده، مثل یک برنامهٔ معمولی از صفحهٔ اصلی باز می‌شود، تمام‌صفحه و بدون نوار مرورگر.
+      </p>
+
+      {!secure ? (
+        <p className="note" style={{ margin: 0 }}>
+          نصب فقط روی نشانی HTTPS ممکن است؛ این صفحه روی http باز شده.
+        </p>
+      ) : canPrompt ? (
+        <button
+          type="button"
+          className="button button--primary button--block"
+          onClick={() =>
+            void install().then((accepted) =>
+              setResult(accepted ? 'نصب شد.' : 'نصب انجام نشد؛ هر وقت خواستی دوباره بزن.'),
+            )
+          }
+        >
+          نصب روی این دستگاه
+        </button>
+      ) : platform === 'ios' ? (
+        <ol className="install-steps">
+          <li>این صفحه را در Safari باز کن.</li>
+          <li>دکمهٔ اشتراک‌گذاری (مربع با پیکان رو به بالا) را بزن.</li>
+          <li>«Add to Home Screen» (افزودن به صفحهٔ اصلی) را انتخاب کن.</li>
+        </ol>
+      ) : platform === 'android' ? (
+        <p className="muted" style={{ margin: 0 }}>
+          از منوی ⋮ مرورگر «نصب برنامه» یا «Add to Home screen» را بزن.
+        </p>
+      ) : (
+        <p className="muted" style={{ margin: 0 }}>
+          در Chrome یا Edge، آیکن نصب را در سمت راست نوار نشانی بزن.
+        </p>
+      )}
+
+      {result && (
+        <p className="note" style={{ margin: 0 }} role="status">
+          {result}
+        </p>
+      )}
+    </section>
   );
 }

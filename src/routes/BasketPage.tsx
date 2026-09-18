@@ -131,7 +131,7 @@ export default function BasketPage() {
 
   if (!items.length) {
     return (
-      <>
+      <div className="page-narrow">
         <h1 className="page-title">سبد خرید</h1>
         <div className="card stack">
           <b>سبد خالی است</b>
@@ -149,7 +149,7 @@ export default function BasketPage() {
             </Link>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -170,88 +170,96 @@ export default function BasketPage() {
     <>
       <h1 className="page-title">سبد خرید</h1>
 
-      {(prices.isFetching || (prices.data && pending)) && (
-        <div className="card stack" role="status">
-          <b>
-            {prices.isFetching
-              ? 'در حال گرفتن قیمت‌ها از هر فروشگاه…'
-              : 'در حال بررسی حداقل سبد فروشگاه‌ها…'}
-          </b>
-          <div className="progress" />
-          {prices.isFetching && progress && progress.total > 0 && (
-            <span className="muted">
-              {money.format(progress.done)} از {money.format(progress.total)}
-            </span>
+      <div className="basket-layout">
+        <div className="basket-status stack">
+          {(prices.isFetching || (prices.data && pending)) && (
+            <div className="card stack" role="status">
+              <b>
+                {prices.isFetching
+                  ? 'در حال گرفتن قیمت‌ها از هر فروشگاه…'
+                  : 'در حال بررسی حداقل سبد فروشگاه‌ها…'}
+              </b>
+              <div className="progress" />
+              {prices.isFetching && progress && progress.total > 0 && (
+                <span className="muted">
+                  {money.format(progress.done)} از {money.format(progress.total)}
+                </span>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {prices.isError && (
-        <p className="note note--error">
-          قیمت‌ها گرفته نشد: {prices.error instanceof Error ? prices.error.message : ''}
-        </p>
-      )}
-
-      {ready &&
-        [...prices.data!.skipped.map((entry) => entry.reason), ...prices.data!.errors].map(
-          (text) => (
-            <p key={text} className="note">
-              {text}
+          {prices.isError && (
+            <p className="note note--error" style={{ margin: 0 }}>
+              قیمت‌ها گرفته نشد: {prices.error instanceof Error ? prices.error.message : ''}
             </p>
-          ),
+          )}
+
+          {ready &&
+            [...prices.data!.skipped.map((entry) => entry.reason), ...prices.data!.errors].map(
+              (text) => (
+                <p key={text} className="note" style={{ margin: 0 }}>
+                  {text}
+                </p>
+              ),
+            )}
+        </div>
+
+        {ready && shown && (
+          <Result
+            plan={shown}
+            overall={overall}
+            choices={choices}
+            maxOrders={maxOrders}
+            itemById={itemById}
+            onChoose={setMaxOrders}
+            onReject={(line) => reject(line.itemId, line.ref)}
+          />
         )}
 
-      {ready && shown && (
-        <Result
-          plan={shown}
-          overall={overall}
-          choices={choices}
-          maxOrders={maxOrders}
-          itemById={itemById}
-          onChoose={setMaxOrders}
-          onReject={(line) => reject(line.itemId, line.ref)}
-        />
-      )}
+        <section className="card basket-items">
+          <div className="basket-items-head">
+            <b>کالاهای سبد ({money.format(items.length)})</b>
+            <button type="button" className="button--link" onClick={clear}>
+              خالی کردن سبد
+            </button>
+          </div>
+          {items.map((item) => (
+            <ItemRow
+              key={item.id}
+              item={item}
+              failed={Boolean(prices.data?.errors.length)}
+              lines={prices.data?.lines.filter((line) => line.itemId === item.id) ?? null}
+              onQuantity={(value) => setQuantity(item.id, value)}
+              onRemove={() => remove(item.id)}
+              onAccept={(line) => accept(item.id, line.ref)}
+            />
+          ))}
+        </section>
 
-      <section className="card basket-items" style={{ marginTop: 10 }}>
-        <div className="basket-items-head">
-          <b>کالاهای سبد ({money.format(items.length)})</b>
-          <button type="button" className="button--link" onClick={clear}>
-            خالی کردن سبد
-          </button>
-        </div>
-        {items.map((item) => (
-          <ItemRow
-            key={item.id}
-            item={item}
-            lines={prices.data?.lines.filter((line) => line.itemId === item.id) ?? null}
-            onQuantity={(value) => setQuantity(item.id, value)}
-            onRemove={() => remove(item.id)}
-            onAccept={(line) => accept(item.id, line.ref)}
-          />
-        ))}
-      </section>
-
-      {ready && (
-        <p className="muted basket-fresh">
-          قیمت‌ها ساعت {clock.format(prices.data!.fetchedAt)} گرفته شد —{' '}
-          <button type="button" className="button--link" onClick={refresh}>
-            تازه‌سازی
-          </button>
-        </p>
-      )}
+        {ready && (
+          <p className="muted basket-fresh">
+            قیمت‌ها ساعت {clock.format(prices.data!.fetchedAt)} گرفته شد —{' '}
+            <button type="button" className="button--link" onClick={refresh}>
+              تازه‌سازی
+            </button>
+          </p>
+        )}
+      </div>
     </>
   );
 }
 
 function ItemRow({
   item,
+  failed,
   lines,
   onQuantity,
   onRemove,
   onAccept,
 }: {
   item: BasketItem;
+  /** Some platform did not answer, so «nowhere» may only mean «not heard from». */
+  failed: boolean;
   lines: Line[] | null;
   onQuantity: (value: number) => void;
   onRemove: () => void;
@@ -284,7 +292,9 @@ function ItemRow({
           <span className="muted">
             {inUse.length
               ? `در ${money.format(storesCount)} فروشگاه از ${money.format(platforms)} پلتفرم`
-              : 'فعلاً هیچ فروشگاهی در محدوده‌ات ندارد'}
+              : failed
+                ? 'قیمتش گرفته نشد'
+                : 'فعلاً هیچ فروشگاهی در محدوده‌ات ندارد'}
             {doubtful.size > 0 && (
               <>
                 {'، '}
@@ -363,12 +373,16 @@ function Result({
   const unknownFee = shown.orders.some((order) => order.store.feeUnknown);
 
   if (!shown.orders.length) {
-    return <p className="empty">هیچ‌کدام از این کالاها در فروشگاه‌های محدوده‌ات پیدا نشد.</p>;
+    return (
+      <p className="empty basket-orders-area">
+        هیچ‌کدام از این کالاها در فروشگاه‌های محدوده‌ات پیدا نشد.
+      </p>
+    );
   }
 
   return (
-    <div className="stack">
-      <section className="card basket-summary">
+    <>
+      <section className="card basket-summary basket-summary-area">
         <span className="muted">
           {shown === overall
             ? 'ارزان‌ترین راه'
@@ -403,99 +417,103 @@ function Result({
         </div>
       </section>
 
-      {short.length > 0 && (
-        <p className="note">
-          {short
-            .map(
-              (order) =>
-                `«${order.store.name}» حداقل سبد ${toman(order.store.minOrder)} دارد؛ ${toman(order.shortOfMinimum)} دیگر لازم است.`,
-            )
-            .join(' ')}
-        </p>
-      )}
+      <div className="stack basket-orders-area">
+        {short.length > 0 && (
+          <p className="note">
+            {short
+              .map(
+                (order) =>
+                  `«${order.store.name}» حداقل سبد ${toman(order.store.minOrder)} دارد؛ ${toman(order.shortOfMinimum)} دیگر لازم است.`,
+              )
+              .join(' ')}
+          </p>
+        )}
 
-      {shown.orders.map((order) => (
-        <section key={order.store.key} className="card basket-order">
-          <div className="basket-order-head">
-            <span className={`badge badge--${order.store.platform}`}>
-              {PLATFORM_LABEL[order.store.platform]}
+        {shown.orders.map((order) => (
+          <section key={order.store.key} className="card basket-order">
+            <div className="basket-order-head">
+              <span className={`badge badge--${order.store.platform}`}>
+                {PLATFORM_LABEL[order.store.platform]}
+              </span>
+              <b>{order.store.name}</b>
+            </div>
+            <span className="muted">
+              {order.store.feeUnknown
+                ? 'هزینهٔ ارسال نامعلوم'
+                : order.store.deliveryFee > 0
+                  ? `ارسال ${toman(order.store.deliveryFee)}`
+                  : 'ارسال رایگان'}
+              {order.store.serviceFee > 0 && `، خدمات و بسته‌بندی ${toman(order.store.serviceFee)}`}
+              {order.store.minOrder > 0 && `، حداقل سبد ${toman(order.store.minOrder)}`}
+              {order.store.minOrderUnknown && '، حداقل سبد نامعلوم'}
             </span>
-            <b>{order.store.name}</b>
-          </div>
-          <span className="muted">
-            {order.store.feeUnknown
-              ? 'هزینهٔ ارسال نامعلوم'
-              : order.store.deliveryFee > 0
-                ? `ارسال ${toman(order.store.deliveryFee)}`
-                : 'ارسال رایگان'}
-            {order.store.serviceFee > 0 && `، خدمات و بسته‌بندی ${toman(order.store.serviceFee)}`}
-            {order.store.minOrder > 0 && `، حداقل سبد ${toman(order.store.minOrder)}`}
-            {order.store.minOrderUnknown && '، حداقل سبد نامعلوم'}
-          </span>
 
-          <ul className="basket-lines">
-            {order.lines.map((line) => {
-              const item = itemById.get(line.itemId);
-              const own = item && refKey(item.refs[0]) === refKey(line.candidate.ref);
-              return (
-                <li key={line.itemId}>
-                  <div className="basket-line-main">
-                    <span className="basket-line-title">
-                      {line.candidate.title}
-                      {!own && <span className="tag">معادل</span>}
-                    </span>
-                    <span className="basket-line-price">
-                      {money.format(line.quantity)} × {toman(line.candidate.unitPrice)}
-                      {line.candidate.discountPercent > 0 &&
-                        ` (${money.format(line.candidate.discountPercent)}٪ تخفیف)`}
-                    </span>
-                    {line.candidate.pagePrice !== undefined && (
-                      <span className="basket-line-note">
-                        صفحهٔ محصول {toman(line.candidate.pagePrice)} نشان می‌دهد؛ بقیه موقع پرداخت
-                        با «تخفیف شگفت‌انگیز» کم می‌شود.
+            <ul className="basket-lines">
+              {order.lines.map((line) => {
+                const item = itemById.get(line.itemId);
+                const own = item && refKey(item.refs[0]) === refKey(line.candidate.ref);
+                return (
+                  <li key={line.itemId}>
+                    <div className="basket-line-main">
+                      <span className="basket-line-title">
+                        {line.candidate.title}
+                        {!own && <span className="tag">معادل</span>}
                       </span>
-                    )}
-                  </div>
-                  <div className="basket-line-side">
-                    <b>{toman(line.total)}</b>
-                    <span className="basket-line-links">
-                      {!own && (
-                        <button
-                          type="button"
-                          className="button--link"
-                          onClick={() => onReject(line.candidate)}
-                        >
-                          این نیست
-                        </button>
+                      <span className="basket-line-price">
+                        {money.format(line.quantity)} × {toman(line.candidate.unitPrice)}
+                        {line.candidate.discountPercent > 0 &&
+                          ` (${money.format(line.candidate.discountPercent)}٪ تخفیف)`}
+                      </span>
+                      {line.candidate.pagePrice !== undefined && (
+                        <span className="basket-line-note">
+                          صفحهٔ محصول {toman(line.candidate.pagePrice)} نشان می‌دهد؛ بقیه موقع
+                          پرداخت با «تخفیف شگفت‌انگیز» کم می‌شود.
+                        </span>
                       )}
-                      <a href={line.candidate.url} target="_blank" rel="noreferrer noopener">
-                        باز کردن ↗
-                      </a>
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                    </div>
+                    <div className="basket-line-side">
+                      <b>{toman(line.total)}</b>
+                      <span className="basket-line-links">
+                        {!own && (
+                          <button
+                            type="button"
+                            className="button--link"
+                            onClick={() => onReject(line.candidate)}
+                          >
+                            این نیست
+                          </button>
+                        )}
+                        <a href={line.candidate.url} target="_blank" rel="noreferrer noopener">
+                          باز کردن ↗
+                        </a>
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
 
-          <div className="basket-order-foot">
-            <span>جمع این سفارش</span>
-            <b>{toman(order.subtotal + order.fees)}</b>
-          </div>
-        </section>
-      ))}
+            <div className="basket-order-foot">
+              <span>جمع این سفارش</span>
+              <b>{toman(order.subtotal + order.fees)}</b>
+            </div>
+          </section>
+        ))}
 
-      {shown.missing.length > 0 && (
-        <section className="card stack">
-          <b>پیدا نشد</b>
-          <span className="muted">این‌ها در فروشگاه‌های این ترکیب نیست، یا به این تعداد نیست:</span>
-          <ul className="basket-missing">
-            {shown.missing.map((id) => (
-              <li key={id}>{itemById.get(id)?.title}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </div>
+        {shown.missing.length > 0 && (
+          <section className="card stack">
+            <b>پیدا نشد</b>
+            <span className="muted">
+              این‌ها در فروشگاه‌های این ترکیب نیست، یا به این تعداد نیست:
+            </span>
+            <ul className="basket-missing">
+              {shown.missing.map((id) => (
+                <li key={id}>{itemById.get(id)?.title}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    </>
   );
 }

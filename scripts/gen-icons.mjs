@@ -15,8 +15,33 @@ import path from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 
-/** 192 and 512 are what the web app manifest asks for; the rest are favicons. */
-const OUTPUTS = [{ dir: path.join(root, 'public/icons'), sizes: [32, 96, 192, 512] }];
+/**
+ * 192 and 512 are what the web app manifest asks for; the rest are favicons.
+ *
+ * The rounded plate has transparent corners, which is right for a favicon and
+ * wrong twice over for an installed app: Android crops a `maskable` icon to its
+ * own shape and needs the artwork inside the central 80% circle with colour to
+ * every edge, and iOS paints a transparent `apple-touch-icon` corner black. So
+ * those two are full-bleed squares with the glyph shrunk into the safe zone.
+ */
+const OUTPUTS = [
+  { dir: path.join(root, 'public/icons'), sizes: [32, 96, 192, 512], name: 'icon' },
+  {
+    dir: path.join(root, 'public/icons'),
+    sizes: [192, 512],
+    name: 'maskable',
+    bleed: true,
+    // The handle's tip sits 54 units from the centre; the safe circle is 51.
+    scale: 0.78,
+  },
+  {
+    dir: path.join(root, 'public/icons'),
+    sizes: [180],
+    name: 'apple-touch-icon',
+    bleed: true,
+    scale: 0.9,
+  },
+];
 
 const SUPERSAMPLE = 4;
 
@@ -92,7 +117,7 @@ function gradientAt(x, y) {
   return [0, 1, 2].map((c) => Math.round(lower.color[c] + (upper.color[c] - lower.color[c]) * k));
 }
 
-function render(size) {
+function render(size, { bleed = false, scale = 1 } = {}) {
   const pixels = Buffer.alloc(size * size * 4);
   const step = 128 / size;
   const sub = step / SUPERSAMPLE;
@@ -110,14 +135,15 @@ function render(size) {
         for (let sx = 0; sx < SUPERSAMPLE; sx += 1) {
           const x = px * step + (sx + 0.5) * sub;
           const y = py * step + (sy + 0.5) * sub;
-          const insidePlate = plateDistance(x, y) < 0;
+          const insidePlate = bleed || plateDistance(x, y) < 0;
           if (!insidePlate) continue;
           plateHits += 1;
           const [r, g, b] = gradientAt(x, y);
           gr += r;
           gg += g;
           gb += b;
-          if (inkDistance(x, y) < 0) inkHits += 1;
+          // Shrinking the glyph is sampling it further out from the centre.
+          if (inkDistance(64 + (x - 64) / scale, 64 + (y - 64) / scale) < 0) inkHits += 1;
         }
       }
 
@@ -190,13 +216,13 @@ function encodePng(pixels, size) {
 
 /* ------------------------------------------------------------------ */
 
-const cache = new Map();
 for (const output of OUTPUTS) {
   await mkdir(output.dir, { recursive: true });
   for (const size of output.sizes) {
-    if (!cache.has(size)) cache.set(size, encodePng(render(size), size));
-    const file = path.join(output.dir, `icon-${size}.png`);
-    await writeFile(file, cache.get(size));
+    const png = encodePng(render(size, output), size);
+    const suffix = output.sizes.length > 1 ? `-${size}` : '';
+    const file = path.join(output.dir, `${output.name}${suffix}.png`);
+    await writeFile(file, png);
     console.log(`✓ ${path.relative(root, file)}`);
   }
 }

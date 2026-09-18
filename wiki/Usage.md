@@ -59,6 +59,42 @@ results are approximate.
 
 **باز کردن** opens that store's page in a new tab.
 
+## سبد — the cheapest way to buy a basket
+
+Tap **+ سبد** on any card in the feed or a search to add that product; tapping
+it again adds one more. The **سبد** tab then prices every item at every store on
+all three platforms and shows the cheapest way to buy the lot.
+
+- **یک سفارش / تا ۲ سفارش / تا ۳ سفارش** — the best plan that needs no more
+  orders than that, each with what it costs against the cheapest overall, or how
+  many items it leaves out.
+- Each order is one store: its delivery fee, service charge and minimum basket,
+  then every product at that store's own price, linked to its page there.
+- **معادل** marks a product from another platform that the app takes to be the
+  same thing — same size, same words once packaging and fat percentages are set
+  aside. A different size, brand, pack or flavour never counts. **این نیست**
+  refuses a match; **کالای شبیه** under an item lists titles the app was not sure
+  about, and **همین است** accepts one.
+- Changing a quantity, a match or the number of orders re-plans at once without
+  asking any platform again; prices are asked for again after five minutes, or on
+  **تازه‌سازی**.
+
+A plan never sends a store less than its minimum basket if any other way exists,
+and says by how much it falls short when none does. How the plan is chosen is in
+[Ranking](Ranking).
+
+## Installing it as an app
+
+- **Android, Chrome or Edge on a laptop** — **تنظیمات → نصب برنامه** installs it
+  directly; the browser's own install icon does the same.
+- **iPhone and iPad** — Safari has no install button a site can offer. In Safari:
+  the share button, then **Add to Home Screen**.
+
+Installed, it opens full screen from its own icon, offers **جستجو** and **سبد** on
+a long press, keeps working as a shell when the connection drops (it says when it
+is offline), and offers **بارگذاری دوباره** when a new version is out. Installing
+needs HTTPS — see [Troubleshooting](Troubleshooting).
+
 ## حساب‌ها and تنظیمات
 
 Sign-in per platform, and the delivery point. Both are covered in

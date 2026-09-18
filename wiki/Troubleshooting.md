@@ -57,7 +57,20 @@ with the failing `/api/...` call from the network panel. **Strip the
 
 ## The page will not install to my home screen
 
-A PWA installs only from a secure context. Use HTTPS, or `localhost` for testing.
+A PWA installs only from a secure context: HTTPS with a certificate the browser
+trusts, or `localhost` for testing. On plain `http://`, or behind a CDN whose
+certificate does not cover the domain, the service worker is refused and nothing
+installs. **تنظیمات → نصب برنامه** says which case you are in and, on iPhone,
+walks through Safari's «Add to Home Screen» — Safari has no install button of its
+own for a site to call.
+
+## An old version keeps loading after a deploy
+
+The installed app notices a new version the next time it comes to the front and
+offers **بارگذاری دوباره**. If it never does, something in front of the app is
+caching the HTML: the pages go out as `no-store`, and a CDN rule that caches them
+anyway will keep serving a shell whose scripts the new deploy deleted. See
+_Behind a CDN_ in [DEPLOY.md](https://github.com/amiranmanesh/discount-hunter/blob/main/docs/DEPLOY.md).
 
 ## A search takes a few seconds
 

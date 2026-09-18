@@ -207,7 +207,8 @@ export default function DealsPage() {
         </>
       )}
 
-      {!query.isPending && offers.length === 0 && (
+      {/* Nothing found is only worth saying when every platform answered. */}
+      {!query.isPending && offers.length === 0 && errors.length === 0 && (
         <p className="empty">فعلاً تخفیفی در محدودهٔ تو پیدا نشد. حداقل تخفیف را کمتر کن.</p>
       )}
 

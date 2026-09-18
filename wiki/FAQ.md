@@ -42,8 +42,9 @@ The default ranks by discount depth, then Pro, then delivery fee. Switch to
 
 ### Does it order anything for me?
 
-No. It reads catalogue data and opens store pages. Adding to a cart and paying
-happens on the site, by you.
+No. It reads catalogue data and opens store pages. Even the basket is a plan:
+it says which store to buy each item from, and links to each product there.
+Adding to a cart and paying happens on the site, by you.
 
 ### Does it work outside Tehran?
 

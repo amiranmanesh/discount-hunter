@@ -25,7 +25,11 @@
   --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 8px 24px rgb(16 24 40 / 6%);
 
   --nav-height: 60px;
+  /* Header row plus its bottom border; the desktop tab bar sticks below it. */
+  --header-height: 57px;
   --wrap: 1080px;
+  /* Room a thumb needs: Apple asks for 44pt, Material for 48dp. */
+  --tap: 40px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -77,6 +81,22 @@ select {
   color: inherit;
 }
 
+/* No grey flash on tap, and no double-tap zoom delay on anything tappable. */
+a,
+button,
+label,
+select,
+summary,
+[role='radio'] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
 button {
   cursor: pointer;
 }
@@ -114,7 +134,10 @@ a {
   width: 100%;
   max-width: var(--wrap);
   margin-inline: auto;
-  padding-inline: 14px;
+  /* Physical sides: a landscape iPhone's notch is on the left or the right,
+     whichever way it is turned, not at the start or the end of the text. */
+  padding-left: max(14px, env(safe-area-inset-left));
+  padding-right: max(14px, env(safe-area-inset-right));
 }
 
 .brand {
@@ -149,6 +172,9 @@ a {
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  user-select: none;
 }
 
 .bottom-nav a {
@@ -207,7 +233,9 @@ a {
 @media (min-width: 860px) {
   .bottom-nav {
     position: sticky;
-    top: 0;
+    /* Below the header, which is sticky too: at 0 the two stacked on scroll
+       and the tab bar covered the header. */
+    top: calc(var(--header-height) + env(safe-area-inset-top));
     inset-inline: auto;
     bottom: auto;
     grid-template-columns: repeat(5, max-content);
@@ -261,8 +289,12 @@ a {
   text-overflow: ellipsis;
 }
 
-.chip:hover {
-  border-color: var(--orange);
+/* Hover only where there is a pointer to hover with: on a touch screen it
+   sticks after the tap. */
+@media (hover: hover) {
+  .chip:hover {
+    border-color: var(--orange);
+  }
 }
 
 .chip.warn {
@@ -281,11 +313,19 @@ a {
   background: var(--surface);
   font-size: 13.5px;
   text-decoration: none;
+  min-height: var(--tap);
 }
 
-.button:hover:not(:disabled) {
-  border-color: var(--orange);
-  color: var(--orange);
+.button:active:not(:disabled),
+.offer-open:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  .button:hover:not(:disabled) {
+    border-color: var(--orange);
+    color: var(--orange);
+  }
 }
 
 .button:disabled {
@@ -300,9 +340,11 @@ a {
   font-weight: 600;
 }
 
-.button--primary:hover:not(:disabled) {
-  color: #fff;
-  filter: brightness(1.06);
+@media (hover: hover) {
+  .button--primary:hover:not(:disabled) {
+    color: #fff;
+    filter: brightness(1.06);
+  }
 }
 
 .button--block {
@@ -394,22 +436,25 @@ a {
 .offer-grid {
   display: grid;
   gap: 10px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 620px) {
   .offer-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 980px) {
   .offer-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 .offer {
+  /* Cards size their footer to themselves, not to the screen: a card is as
+     narrow in a three-column desktop grid as on a small phone. */
+  container-type: inline-size;
   display: flex;
   gap: 11px;
   padding: 11px;
@@ -548,7 +593,11 @@ a {
 
 .offer-open {
   flex: none;
-  padding: 5px 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 5px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -558,15 +607,30 @@ a {
   white-space: nowrap;
 }
 
-.offer-open:hover {
-  border-color: var(--orange);
-  color: var(--orange);
+@media (hover: hover) {
+  .offer-open:hover {
+    border-color: var(--orange);
+    color: var(--orange);
+  }
 }
 
 .offer-actions {
   display: flex;
   flex: none;
   gap: 6px;
+}
+
+/* A narrow card puts its totals on their own line and gives the two buttons
+   the full width, instead of squeezing the totals into a four-line column. */
+@container (max-width: 380px) {
+  .offer-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .offer-actions > * {
+    flex: 1;
+  }
 }
 
 .offer-basket {
@@ -618,11 +682,14 @@ a {
 .filters label {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  min-height: 32px;
   color: var(--muted);
+  cursor: pointer;
 }
 
 .filters select {
+  min-height: 34px;
   padding: 5px 8px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -632,8 +699,9 @@ a {
 
 .filters input[type='checkbox'] {
   accent-color: var(--orange);
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
 }
 
 /* Search --------------------------------------------------------------- */
@@ -677,8 +745,10 @@ a {
   font-size: 13px;
 }
 
-.suggestions li:hover {
-  background: var(--orange-soft);
+@media (hover: hover) {
+  .suggestions li:hover {
+    background: var(--orange-soft);
+  }
 }
 
 /* Progress ------------------------------------------------------------- */
@@ -750,8 +820,10 @@ a {
   cursor: pointer;
 }
 
-.address-option:hover {
-  border-color: var(--orange);
+@media (hover: hover) {
+  .address-option:hover {
+    border-color: var(--orange);
+  }
 }
 
 .address-option[aria-pressed='true'] {
@@ -962,8 +1034,8 @@ a {
 }
 
 .stepper button {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border: 0;
   background: none;
   font-size: 17px;
@@ -988,6 +1060,7 @@ a {
 }
 
 .segmented button {
+  min-height: 36px;
   min-width: 34px;
   padding: 5px 10px;
   border: 0;
@@ -1139,8 +1212,18 @@ a {
 
 .basket-line-links {
   display: flex;
-  gap: 10px;
+  gap: 4px;
   font-size: 11.5px;
+}
+
+/* Text links, but with a thumb-sized target around them. */
+.basket-line-links > *,
+.basket-items-head .button--link,
+.basket-item .button--link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding-inline: 6px;
 }
 
 .basket-line-links a {
@@ -1164,4 +1247,168 @@ a {
 .basket-fresh {
   margin-top: 12px;
   text-align: center;
+}
+
+/* Touch screens ---------------------------------------------------------- */
+
+/* iOS zooms the page into any field whose text is under 16px the moment it is
+   tapped, and leaves it zoomed. The fields keep their size elsewhere. */
+@media (pointer: coarse) {
+  .field input,
+  .field select,
+  .search-bar input,
+  .filters select,
+  .code-input {
+    font-size: 16px;
+  }
+}
+
+/* A phone on its side: 390px of height, of which the header and the tab bar
+   took 116. The header scrolls away and the tab bar lays its labels beside
+   the icons. */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 859px) {
+  :root {
+    --nav-height: 46px;
+  }
+
+  .app-header {
+    position: relative;
+  }
+
+  .app-header .wrap {
+    min-height: 46px;
+  }
+
+  .bottom-nav a {
+    grid-auto-flow: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .bottom-nav svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .nav-badge {
+    position: static;
+  }
+
+  .app-main {
+    padding-top: 8px;
+  }
+}
+
+/* Page widths ------------------------------------------------------------ */
+
+/* Forms and settings read as a column, not as a line across a wide screen. */
+.page-narrow {
+  max-width: 680px;
+  margin-inline: auto;
+}
+
+/* The basket on a wide screen: what it costs and what is in it on one side,
+   the orders on the other. On a phone: the answer, the orders, then the items. */
+.basket-layout {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'status'
+    'summary'
+    'orders'
+    'items'
+    'fresh';
+}
+
+.basket-status {
+  grid-area: status;
+}
+
+.basket-layout > .basket-summary-area {
+  grid-area: summary;
+}
+
+.basket-layout > .basket-orders-area {
+  grid-area: orders;
+}
+
+.basket-layout > .basket-items {
+  grid-area: items;
+}
+
+.basket-layout > .basket-fresh {
+  grid-area: fresh;
+}
+
+.basket-status:empty {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .basket-layout {
+    grid-template-columns: 380px minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'status status'
+      'summary orders'
+      'items orders'
+      'fresh orders';
+    align-items: start;
+  }
+}
+
+/* App status ------------------------------------------------------------- */
+
+.app-toast {
+  position: fixed;
+  z-index: 40;
+  inset-inline: 12px;
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 520px;
+  margin-inline: auto;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 13px;
+  box-shadow: var(--shadow);
+}
+
+.app-toast span {
+  flex: 1;
+}
+
+.app-toast .button {
+  flex: none;
+  min-height: 34px;
+  padding: 5px 12px;
+  border: 0;
+  background: var(--orange);
+  color: #fff;
+}
+
+.app-toast--offline {
+  background: var(--jet-soft);
+  color: var(--text);
+  border: 1px solid var(--jet);
+}
+
+@media (min-width: 860px) {
+  .app-toast {
+    bottom: 20px;
+  }
+}
+
+/* Install card */
+
+.install-steps {
+  margin: 0;
+  padding-inline-start: 20px;
+  font-size: 13px;
+  line-height: 1.9;
 }

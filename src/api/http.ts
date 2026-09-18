@@ -105,12 +105,24 @@ export async function request<T>(
   }
 
   const suffix = query.toString();
-  const response = await fetch(`${base}${path}${suffix ? `?${suffix}` : ''}`, {
-    method: options.method ?? 'GET',
-    headers,
-    body,
-    signal: options.signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${base}${path}${suffix ? `?${suffix}` : ''}`, {
+      method: options.method ?? 'GET',
+      headers,
+      body,
+      signal: options.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+    // The browser's own words for this are «Failed to fetch» or «Load failed»,
+    // which say nothing to someone whose phone just lost its signal.
+    throw new ApiError(
+      typeof navigator !== 'undefined' && navigator.onLine === false
+        ? 'اینترنت وصل نیست'
+        : 'به سرور برنامه نرسیدیم؛ اتصال را بررسی کن و دوباره امتحان کن',
+    );
+  }
 
   if (response.status === 429) {
     throw new ApiError('سرویس فعلاً درخواست بیشتری قبول نمی‌کند', {

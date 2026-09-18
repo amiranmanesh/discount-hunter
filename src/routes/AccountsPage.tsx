@@ -19,7 +19,7 @@ export default function AccountsPage() {
   const invalid = phone.length > 0 && !normalized;
 
   return (
-    <>
+    <div className="page-narrow">
       <h1 className="page-title">حساب‌ها</h1>
       <p className="muted" style={{ marginTop: 0 }}>
         یک شماره برای هر سه پلتفرم. کد پیامکی را جدا می‌فرستد، چون حساب‌ها جدا هستند. توکن روی همین
@@ -84,7 +84,7 @@ export default function AccountsPage() {
           />
         ))}
       </div>
-    </>
+    </div>
   );
 }
 

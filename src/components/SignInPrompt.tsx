@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function SignInPrompt() {
   return (
-    <div className="card stack">
+    <div className="card stack page-narrow">
       <b>برای جستجو باید وارد یکی از حساب‌ها باشی</b>
       <p className="muted" style={{ margin: 0 }}>
         قیمت‌ها و شرایط خرید به حساب تو بستگی دارد. اسنپ‌مارکت و اوکالا برای جستجو نشست خودت را

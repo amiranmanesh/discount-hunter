@@ -129,6 +129,14 @@ its own site signs in again, and so does this.
 Codes are rate-limited on purpose: two minutes between codes, five per fifteen
 minutes, five attempts per code, and a server `Retry-After` is honoured.
 
+## Install it
+
+On Android and on a laptop: **تنظیمات → نصب برنامه**, or the browser's own install
+icon. On iPhone and iPad: in Safari, the share button, then **Add to Home Screen**.
+Installed, it opens full screen, keeps a working shell offline and says when a new
+version is ready. Installing needs HTTPS with a trusted certificate — see
+[docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Set your delivery point
 
 **تنظیمات** → **استفاده از موقعیت فعلی** for GPS, or type coordinates. If you are

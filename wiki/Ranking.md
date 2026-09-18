@@ -54,3 +54,26 @@ shelf, once from the ordinary catalogue. The campaign listing wins, because it
 carries the discount. Between two listings of the same kind, the cheaper wins.
 The same product in two _different_ stores is never merged; that comparison is
 the entire point.
+
+## The basket
+
+The basket is not ranked, it is planned. Every item can be bought at some set of
+stores, each at its own price, and each store adds its delivery fee and service
+charge and refuses a basket below its minimum. The planner tries every
+combination of up to three stores (with more than sixty candidate stores, the
+three-store combinations keep each item's four cheapest sellers and the stores
+that carry most of the basket closest to its cheapest prices) and prefers, in
+order:
+
+1. the plan that buys **more of the basket** — leaving an item out is not a
+   cheaper way to buy it;
+2. a plan **every store will accept** — each order at or above its minimum;
+3. the **lower total**, items plus every order's fees;
+4. **fewer orders**.
+
+Items go to the cheapest store in the combination; when that leaves a store short
+of its minimum, items it also sells are moved over from the other stores in the
+same trip, cheapest move first, as long as that leaves them above their own
+minimums. Okala keeps its minimum on a separate page per store, so only stores a
+plan picks are asked, and planning repeats until none is left unasked — the same
+answer as asking every store first.

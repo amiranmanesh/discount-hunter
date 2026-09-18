@@ -10,7 +10,7 @@ Persian documentation: [README.fa.md](https://github.com/amiranmanesh/discount-h
 ## Pages
 
 - **[Installation](Installation)** — Docker, compose, or from source
-- **[Usage](Usage)** — the feed, the search, and what each filter does
+- **[Usage](Usage)** — the feed, the search, the basket, and installing the app
 - **[Ranking](Ranking)** — why the top result is the top result
 - **[Trust](Trust)** — the three rules that keep a price honest
 - **[Troubleshooting](Troubleshooting)**
@@ -18,7 +18,7 @@ Persian documentation: [README.fa.md](https://github.com/amiranmanesh/discount-h
 - **[API Reference](API-Reference)** — the endpoints behind all of it
 - **[Development](Development)**
 
-## Two ways to use it
+## Three ways to use it
 
 **تخفیف‌ها** is an endless feed of every campaign offer in range, deepest discount
 first, mixed across all three platforms. Nothing to type — scroll until something
@@ -26,6 +26,15 @@ catches your eye.
 
 **جستجو** takes one product and prices it across every store that delivers to
 you, ranked by discount, then Snapp Market **Pro** stores, then delivery fee.
+
+**سبد** takes the things you want to buy and finds the cheapest way to buy all of
+them: which store on which platform for each item, in at most one, two or three
+orders, with every store's delivery fee, service charge and minimum basket
+counted.
+
+It installs like an app — on a phone from **تنظیمات → نصب برنامه**, on a laptop
+from the browser's address bar — and every page works from a small phone held
+upright or on its side to a wide desktop window.
 
 ## Why it needs a server
 
@@ -41,5 +50,6 @@ which is why it runs unchanged on `localhost` or on your own domain. See
 ## What it is not
 
 It does not place orders, touch your cart or change prices. It reads catalogue
-data and opens store pages. Independent project, no connection to Snapp or
+data and opens store pages; the basket is a plan, and the orders are yours to
+place. Independent project, no connection to Snapp or
 Digikala.

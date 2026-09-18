@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useSettings } from '@/store/settings';
 import { useBasket } from '@/store/basket';
+import { registerServiceWorker, watchPwa } from '@/pwa/state';
+import AppStatus from '@/components/AppStatus';
 
 /**
  * Client-side setup that every page shares: the query cache, and the service
@@ -37,13 +39,19 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     void useBasket.persist.rehydrate();
   }, []);
 
+  useEffect(() => watchPwa(), []);
+
   useEffect(() => {
+    // In development the worker would cache build output that changes on
+    // every save.
     if (process.env.NODE_ENV !== 'production') return;
-    if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // An install that fails costs the offline shell and nothing else.
-    });
+    return registerServiceWorker();
   }, []);
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <AppStatus />
+    </QueryClientProvider>
+  );
 }

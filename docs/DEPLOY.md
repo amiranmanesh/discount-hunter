@@ -119,6 +119,29 @@ labels:
 Do not strip or rewrite `/api` on the way through. It is not an external service:
 it is this app's own route, and rewriting it breaks every call.
 
+### Behind a CDN
+
+The app is safe behind a CDN (ArvanCloud, Cloudflare and the like) as long as
+the CDN respects the app's own `Cache-Control` headers:
+
+| Path                                          | Header the app sends                                      | At the edge  |
+| --------------------------------------------- | --------------------------------------------------------- | ------------ |
+| `/`, `/search`, `/basket`, …                  | `private, no-cache, no-store, max-age=0, must-revalidate` | never cached |
+| `/_next/static/*`                             | `public, max-age=31536000, immutable`                     | forever      |
+| `/api/*`                                      | `no-store`                                                | never cached |
+| `/sw.js`, `/manifest.webmanifest`, `/icons/*` | `public, max-age=0` (revalidate)                          | revalidated  |
+
+The pages are rendered per request on purpose. The HTML is only a shell, but it
+names the build's hashed script files and a new deploy deletes the old ones, so a
+CDN still serving yesterday's HTML would serve an app that cannot load. Do not add
+an edge rule that caches HTML, and do not let the CDN strip the `rsc` header or
+the `_rsc` query parameter (Next.js uses them for client-side navigation).
+
+TLS has to terminate at the CDN with a certificate for your domain. Without it,
+browsers refuse the site on `https://`, and on plain `http://` the app still
+works but cannot be installed, cannot use GPS and gets no offline shell — all
+three need a secure context.
+
 ### A sub-path is not supported
 
 The app is served from the root of whatever host it is on. If you need it under

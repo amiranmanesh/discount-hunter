@@ -35,6 +35,19 @@ describe('request', () => {
     await expect(request('/api/snapp', '/anything')).rejects.toThrow('HOSTING');
   });
 
+  it('says in words what a failed connection means, instead of «Failed to fetch»', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(request('/api/jet', '/x')).rejects.toThrow('به سرور برنامه نرسیدیم');
+
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    await expect(request('/api/jet', '/x')).rejects.toThrow('اینترنت وصل نیست');
+  });
+
+  it('lets a cancelled request stay a cancellation', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new DOMException('aborted', 'AbortError'));
+    await expect(request('/api/jet', '/x')).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
   it('surfaces the upstream message on an error status', async () => {
     respond({ message: 'کد نادرست است' }, { status: 400 });
     await expect(request('/api/snapp', '/x')).rejects.toThrow('کد نادرست است');

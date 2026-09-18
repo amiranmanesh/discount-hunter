@@ -6,6 +6,46 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Installing is a first-class path.** **تنظیمات → نصب برنامه** installs the app
+  where the browser allows it and, on iPhone, walks through Safari's «Add to Home
+  Screen». The manifest gains maskable and Apple icons that fill the whole shape
+  instead of showing a rounded plate with black or white corners, long-press
+  shortcuts to **جستجو** and **سبد**, screenshots for the richer install sheet,
+  a stable `id`, and any orientation.
+- The installed app says when it is offline and offers **بارگذاری دوباره** when a
+  new version has taken over; it looks for one whenever it comes back to the front.
+
+### Changed
+
+- **Every page fits every screen.** Checked at nine sizes from a 320px phone to a
+  1440px desktop, upright and on its side, with no horizontal overflow anywhere:
+  - offer cards lay out by their own width, so a card in a three-column desktop
+    grid gets the same full-width buttons as one on a small phone;
+  - on a phone held sideways the header scrolls away and the tab bar is half as
+    tall, instead of taking a third of the height between them;
+  - on a wide screen the basket shows its total and items beside the orders, and
+    settings, accounts and prompts keep to a readable column;
+  - taps land: buttons, steppers, filter checkboxes and the basket's text links
+    all have a finger-sized target, hover effects no longer stick after a tap on
+    a touch screen, and a landscape iPhone's notch never covers content.
+- Pages are rendered per request and sent as `no-store`, so a CDN in front of the
+  app can no longer keep serving an old page whose scripts a new deploy removed.
+  Hashed build files stay cacheable forever. See _Behind a CDN_ in `docs/DEPLOY.md`.
+- The status bar takes the header's colour, light or dark, instead of orange.
+
+### Fixed
+
+- **Typing in a field no longer zooms the page on iPhone.** Safari zooms into any
+  field under 16px; on a touch screen they are 16px now.
+- A lost connection reads «اینترنت وصل نیست» or «به سرور برنامه نرسیدیم» instead
+  of the browser's «Failed to fetch».
+- When a platform does not answer, the feed and the basket no longer say nothing
+  was found nearby — only that the answer did not arrive.
+- On a laptop the tab bar stuck over the header when scrolling; it now sits below
+  it.
+
 ## [3.2.0] — 2026-09-18
 
 ### Added
