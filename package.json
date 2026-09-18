@@ -1,6 +1,6 @@
 {
   "name": "discount-hunter",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "private": true,
   "description": "Find the deepest Snapp Market, Digikala Jet and Okala discounts near you — an installable PWA served next to its own proxy.",
   "license": "MIT",

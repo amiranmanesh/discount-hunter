@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.3.0] — 2026-09-18
+
 ### Added
 
 - **Installing is a first-class path.** **تنظیمات → نصب برنامه** installs the app
