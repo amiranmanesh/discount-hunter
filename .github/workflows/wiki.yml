@@ -23,7 +23,7 @@ jobs:
     name: Mirror wiki/ into the GitHub wiki
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Copy the pages across
         env:
