@@ -13,7 +13,7 @@
  *                         so a cached one can never be the wrong version
  *   3. product images     cache first, trimmed, from the two image CDNs
  */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL_CACHE = `shell-${VERSION}`;
 const ASSET_CACHE = `assets-${VERSION}`;
 const IMAGE_CACHE = `images-${VERSION}`;

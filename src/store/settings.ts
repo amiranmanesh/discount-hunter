@@ -4,6 +4,9 @@ import type { Location, PlatformId, SortMode } from '../core/types';
 import type { RateLimitState } from '../auth/backoff';
 import { emptyLimit } from '../auth/backoff';
 import type { Session } from '../auth/session';
+import { randomUuid } from '../core/uuid';
+
+export type ViewMode = 'grid' | 'compact';
 
 export interface Settings {
   /**
@@ -13,6 +16,8 @@ export interface Settings {
    */
   phone: string;
   location: Location | null;
+  savedLocations: Location[];
+  viewMode: ViewMode;
   sortMode: SortMode;
   sources: Record<PlatformId, boolean>;
   onlyCampaign: boolean;
@@ -32,10 +37,21 @@ interface State extends Settings {
   limits: Record<PlatformId, RateLimitState>;
 
   setLocation: (location: Location | null) => void;
+  selectLocation: (location: Location) => void;
+  addSavedLocation: (location: Omit<Location, 'id'> & { id?: string }) => Location;
+  removeSavedLocation: (id: string) => void;
+  updateSavedLocationLabel: (id: string, label: string) => void;
+  setViewMode: (mode: ViewMode) => void;
   patch: (settings: Partial<Settings>) => void;
   rememberQuery: (query: string) => void;
   setSession: (platform: PlatformId, session: Session | null) => void;
   setLimit: (platform: PlatformId, limit: RateLimitState) => void;
+}
+
+function sameLocation(a: Location | null, b: Location | null): boolean {
+  if (!a || !b) return false;
+  if (a.id && b.id && a.id === b.id) return true;
+  return Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6 && a.label === b.label;
 }
 
 export const useSettings = create<State>()(
@@ -43,6 +59,8 @@ export const useSettings = create<State>()(
     (set) => ({
       phone: '',
       location: null,
+      savedLocations: [],
+      viewMode: 'grid',
       sortMode: 'best-discount',
       sources: { snapp: true, jet: true, okala: true },
       onlyCampaign: false,
@@ -53,7 +71,59 @@ export const useSettings = create<State>()(
       sessions: { snapp: null, jet: null, okala: null },
       limits: { snapp: emptyLimit(), jet: emptyLimit(), okala: emptyLimit() },
 
-      setLocation: (location) => set({ location }),
+      setLocation: (location) =>
+        set((state) => {
+          if (!location) return { location: null };
+          const id = location.id || randomUuid();
+          const normalized = { ...location, id };
+          const exists = state.savedLocations.some((loc) => sameLocation(loc, normalized));
+          const savedLocations = exists
+            ? state.savedLocations.map((loc) => (sameLocation(loc, normalized) ? normalized : loc))
+            : [...state.savedLocations, normalized];
+          return { location: normalized, savedLocations };
+        }),
+
+      selectLocation: (location) => set({ location }),
+
+      addSavedLocation: (rawLoc) => {
+        const id = rawLoc.id || randomUuid();
+        const newLoc: Location = { ...rawLoc, id };
+        set((state) => {
+          const existsIndex = state.savedLocations.findIndex((loc) => sameLocation(loc, newLoc));
+          let updated: Location[];
+          if (existsIndex >= 0) {
+            updated = [...state.savedLocations];
+            updated[existsIndex] = newLoc;
+          } else {
+            updated = [...state.savedLocations, newLoc];
+          }
+          return { savedLocations: updated, location: newLoc };
+        });
+        return newLoc;
+      },
+
+      removeSavedLocation: (id) =>
+        set((state) => {
+          const filtered = state.savedLocations.filter((loc) => loc.id !== id);
+          const activeRemoved = state.location?.id === id;
+          return {
+            savedLocations: filtered,
+            location: activeRemoved ? (filtered[0] ?? null) : state.location,
+          };
+        }),
+
+      updateSavedLocationLabel: (id, label) =>
+        set((state) => {
+          const updated = state.savedLocations.map((loc) =>
+            loc.id === id ? { ...loc, label } : loc,
+          );
+          const activeUpdated =
+            state.location?.id === id ? { ...state.location, label } : state.location;
+          return { savedLocations: updated, location: activeUpdated };
+        }),
+
+      setViewMode: (viewMode) => set({ viewMode }),
+
       patch: (settings) => set(settings),
       rememberQuery: (query) =>
         set((state) => ({
@@ -66,25 +136,29 @@ export const useSettings = create<State>()(
     }),
     {
       name: 'discount-hunter',
-      // 3 adds the shared phone number and 4 the Snapp Pro flag; the migration
-      // below fills both in for a state written before they existed.
-      version: 4,
-      // The server renders this page with the empty state above, because it has
-      // no access to the browser's storage. Reading the stored state during the
-      // first client render would therefore produce different markup than the
-      // server sent, which React refuses to reconcile. So hydration is deferred
-      // to an effect — `Providers` calls `rehydrate()` right after mount — and
-      // the first paint matches the server exactly.
+      version: 5,
       skipHydration: true,
-      // A stored state from before a platform existed has no entry for it, and
-      // an absent flag must not read as "off".
       migrate: (persisted) => {
         const state = (persisted ?? {}) as Partial<State>;
+        let savedLocations: Location[] = Array.isArray(state.savedLocations)
+          ? state.savedLocations
+          : [];
+        let location = state.location ?? null;
+
+        if (location && !location.id) {
+          location = { ...location, id: 'loc-default' };
+        }
+
+        if (location && !savedLocations.some((l) => sameLocation(l, location))) {
+          savedLocations = [location, ...savedLocations];
+        }
+
         return {
           ...state,
-          // Stored before there was a shared number: start empty rather than
-          // undefined, which a controlled input would read as uncontrolled.
           phone: state.phone ?? '',
+          location,
+          savedLocations,
+          viewMode: state.viewMode ?? 'grid',
           snappPro: state.snappPro ?? false,
           sources: { snapp: true, jet: true, okala: true, ...(state.sources ?? {}) },
           limits: {
@@ -96,12 +170,11 @@ export const useSettings = create<State>()(
           sessions: { snapp: null, jet: null, okala: null, ...(state.sessions ?? {}) },
         } as State;
       },
-      // Tokens live here because that is the only place they can live in a
-      // browser app; they are the user's own session and never leave the device
-      // except to the platform they came from.
       partialize: (state) => ({
         phone: state.phone,
         location: state.location,
+        savedLocations: state.savedLocations,
+        viewMode: state.viewMode,
         sortMode: state.sortMode,
         sources: state.sources,
         onlyCampaign: state.onlyCampaign,

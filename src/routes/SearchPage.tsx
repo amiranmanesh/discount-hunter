@@ -12,7 +12,7 @@ import SignInPrompt from '../components/SignInPrompt';
 import { useSettings } from '../store/settings';
 import { useTokens } from '../hooks/useTokens';
 
-const money = new Intl.NumberFormat('fa-IR');
+const money = new Intl.NumberFormat('en-US');
 
 export default function SearchPage() {
   const settings = useSettings();

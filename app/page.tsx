@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import DealsPage from '@/routes/DealsPage';
+import DealsAndSearchPage from '@/routes/DealsAndSearchPage';
 
 export const metadata: Metadata = {
   title: 'تخفیف‌ها · شکارچی تخفیف',
-  description: 'همهٔ تخفیف‌های کمپینی اطرافت، عمیق‌ترین اول.',
+  description: 'همهٔ تخفیف‌ها و جستجوی محصولات در یک صفحه، مرتب‌شده بر اساس درصد تخفیف.',
 };
 
 export default function Page() {
-  return <DealsPage />;
+  return <DealsAndSearchPage />;
 }

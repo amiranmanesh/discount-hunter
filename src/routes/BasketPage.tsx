@@ -19,9 +19,9 @@ import { useSettings } from '../store/settings';
 import { useTokens } from '../hooks/useTokens';
 import type { PlatformId } from '../core/types';
 
-const money = new Intl.NumberFormat('fa-IR');
+const money = new Intl.NumberFormat('en-US');
 const toman = (value: number) => `${money.format(Math.round(value))} تومان`;
-const clock = new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' });
+const clock = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' });
 
 const PLATFORM_LABEL: Record<PlatformId, string> = {
   snapp: 'اسنپ‌مارکت',

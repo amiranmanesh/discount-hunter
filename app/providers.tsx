@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useSettings } from '@/store/settings';
 import { useBasket } from '@/store/basket';
+import { useFavorites } from '@/store/favorites';
 import { registerServiceWorker, watchPwa } from '@/pwa/state';
 import AppStatus from '@/components/AppStatus';
 
@@ -37,6 +38,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void useSettings.persist.rehydrate();
     void useBasket.persist.rehydrate();
+    void useFavorites.persist.rehydrate();
   }, []);
 
   useEffect(() => watchPwa(), []);

@@ -228,7 +228,7 @@ export async function campaignPage(
   pageSize = 20,
   { pro = false }: FeeOptions = {},
 ): Promise<CampaignPage> {
-  const [json, fees] = await Promise.all([
+  const [json] = await Promise.all([
     request<{ data?: { total_count?: number; vendors?: RawVendor[] } }>(
       SNAPP_BASE,
       `/market-party/${location.lat}/${location.lng}`,
@@ -247,27 +247,32 @@ export async function campaignPage(
   ]);
 
   const vendors = json.data?.vendors ?? [];
-  const total = Number(json.data?.total_count ?? 0);
-  const offers: Offer[] = [];
-  let firstOrderSkipped = 0;
+    const total = Number(json.data?.total_count ?? 0);
+    const offers: Offer[] = [];
+    let firstOrderSkipped = 0;
 
-  for (const raw of vendors) {
-    firstOrderSkipped += raw.personalizedProducts?.length ?? 0;
-    const vendor = withFee(toVendor(raw), fees);
-    for (const product of raw.products ?? []) {
-      const offer = toOffer(product, vendor);
-      if (!offer.targeted) offers.push(offer);
+    // The listing previews only ten products per store; the shelf endpoint
+    // holds the rest, and that is where most products hide.
+    const shelves = await pooled(vendors, 6, (raw) =>
+      vendorShelf(token, toVendor(raw), location),
+    );
+    for (const raw of vendors) {
+      firstOrderSkipped += raw.personalizedProducts?.length ?? 0;
     }
-  }
+    for (const shelf of shelves) {
+      if (isPoolError(shelf)) continue;
+      firstOrderSkipped += shelf.firstOrderSkipped;
+      offers.push(...shelf.offers);
+    }
 
-  return {
-    offers,
-    vendorCount: vendors.length,
-    totalVendors: total,
-    firstOrderSkipped,
-    hasMore: vendors.length > 0 && (page + 1) * pageSize < total,
-  };
-}
+    return {
+      offers,
+      vendorCount: vendors.length,
+      totalVendors: total,
+      firstOrderSkipped,
+      hasMore: vendors.length > 0 && (page + 1) * pageSize < total,
+    };
+  }
 
 /** Every nearby vendor running the campaign, for a search that needs them all. */
 export async function campaignVendors(
@@ -303,13 +308,19 @@ export async function campaignVendors(
 
     for (const raw of batch) {
       firstOrderSkipped += raw.personalizedProducts?.length ?? 0;
-      const vendor = withFee(toVendor(raw), fees);
-      vendors.push(vendor);
-      for (const product of raw.products ?? []) {
-        const offer = toOffer(product, vendor);
-        if (!offer.targeted) previews.push(offer);
-      }
+      vendors.push(withFee(toVendor(raw), fees));
     }
+  }
+
+  // The listing previews only ten products per store; the shelf endpoint
+  // holds the rest, and that is where most products hide.
+  const shelves = await pooled(vendors, 6, (vendor) =>
+    vendorShelf(token, vendor, location),
+  );
+  for (const shelf of shelves) {
+    if (isPoolError(shelf)) continue;
+    firstOrderSkipped += shelf.firstOrderSkipped;
+    previews.push(...shelf.offers);
   }
 
   return { vendors: vendors.slice(0, maxVendors), previews, firstOrderSkipped };
