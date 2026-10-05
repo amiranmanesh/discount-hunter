@@ -9,8 +9,8 @@ import SignInPrompt from '../components/SignInPrompt';
 import { useSettings } from '../store/settings';
 import { useTokens } from '../hooks/useTokens';
 
-const money = new Intl.NumberFormat('fa-IR');
-const clock = new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' });
+const money = new Intl.NumberFormat('en-US');
+const clock = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' });
 
 /**
  * How old the feed may get before coming back to it starts it over. Campaign

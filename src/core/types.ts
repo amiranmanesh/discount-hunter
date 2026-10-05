@@ -71,6 +71,7 @@ export interface Offer {
 }
 
 export interface Location {
+  id?: string;
   lat: number;
   lng: number;
   label: string;

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { PLATFORMS } from '../store/auth';
 import { useSettings } from '../store/settings';
 import { useBasket } from '../store/basket';
+import { useFavorites } from '../store/favorites';
 
 const icons = {
   deals: (
@@ -13,10 +14,9 @@ const icons = {
       <circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" stroke="none" />
     </svg>
   ),
-  search: (
+  favorites: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.6-3.6" strokeLinecap="round" />
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
     </svg>
   ),
   basket: (
@@ -47,23 +47,30 @@ export default function BottomNav() {
   const pathname = usePathname();
   const sessions = useSettings((state) => state.sessions);
   const inBasket = useBasket((state) => state.items.length);
+  const favoritesCount = useFavorites((state) => state.favorites.length);
   const missing = PLATFORMS.filter(
     (platform) => platform.required && !sessions[platform.id]?.accessToken,
   ).length;
 
-  // `aria-current` is what marks the tab as the page you are on — for a screen
-  // reader, and for the stylesheet, which draws the highlight from it.
   const current = (href: string) => (pathname === href ? 'page' : undefined);
 
   return (
     <nav className="bottom-nav" aria-label="ناوبری اصلی">
       <Link href="/" aria-current={current('/')}>
         {icons.deals}
-        <span>تخفیف‌ها</span>
+        <span>تخفیف و جستجو</span>
       </Link>
-      <Link href="/search" aria-current={current('/search')}>
-        {icons.search}
-        <span>جستجو</span>
+      <Link href="/favorites" aria-current={current('/favorites')}>
+        {icons.favorites}
+        <span>نشان‌شده‌ها</span>
+        {favoritesCount > 0 && (
+          <span
+            className="nav-badge nav-badge--count"
+            aria-label={`${favoritesCount} کالای نشان‌شده`}
+          >
+            {favoritesCount}
+          </span>
+        )}
       </Link>
       <Link href="/basket" aria-current={current('/basket')}>
         {icons.basket}

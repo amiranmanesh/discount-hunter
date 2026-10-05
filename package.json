@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "next dev",
+    "stop": "npx kill-port 3000 || taskkill /F /IM node.exe 2>nul || true",
+    "restart": "npm run stop && npm run dev",
     "build": "next build",
     "start": "next start",
     "preview:ui": "node scripts/preview.mjs",

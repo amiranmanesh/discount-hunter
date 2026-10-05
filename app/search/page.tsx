@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import SearchPage from '@/routes/SearchPage';
+import DealsAndSearchPage from '@/routes/DealsAndSearchPage';
 
 export const metadata: Metadata = {
   title: 'جستجو · شکارچی تخفیف',
-  description: 'یک محصول، قیمت‌گرفته در هر فروشگاهی که به تو تحویل می‌دهد.',
+  description: 'جستجوی یک محصول و مشاهدهٔ تخفیف‌های کمپینی در همین صفحه.',
 };
 
 export default function Page() {
-  return <SearchPage />;
+  return <DealsAndSearchPage />;
 }
