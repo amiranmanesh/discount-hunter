@@ -10,3 +10,7 @@ package-lock.json
 .claude/
 .agents/
 .preview/
+# The Gradle tree is generated; www/ mirrors assets and carries its own
+# hand-formatted splash page that no bundler ever touches.
+android/
+www/

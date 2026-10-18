@@ -37,6 +37,9 @@ export default function DealsAndSearchPage() {
     sortMode,
     viewMode,
     setViewMode,
+    hiddenVendors,
+    hideVendor,
+    showAllVendors,
     patch,
   } = useSettings();
   const { data: tokens, isPending: tokensPending } = useTokens();
@@ -270,148 +273,214 @@ export default function DealsAndSearchPage() {
       </form>
 
       {!submittedQuery && (
-        <div className="filters">
-          <label>
-            حداقل تخفیف
-            <select
-              value={String(minDiscount)}
-              onChange={(e) => patch({ minDiscount: Number(e.target.value) })}
-            >
-              <option value="0">همه</option>
-              <option value="20">۲۰٪+</option>
-              <option value="30">۳۰٪+</option>
-              <option value="50">۵۰٪+</option>
-              <option value="70">۷۰٪+</option>
-            </select>
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={sources.snapp}
-              onChange={(e) => patch({ sources: { ...sources, snapp: e.target.checked } })}
-            />
-            اسنپ‌مارکت
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={sources.jet}
-              onChange={(e) => patch({ sources: { ...sources, jet: e.target.checked } })}
-            />
-            دیجی‌کالا جت
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={sources.okala}
-              onChange={(e) => patch({ sources: { ...sources, okala: e.target.checked } })}
-            />
-            اوکالا
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={onlyOpen}
-              onChange={(e) => patch({ onlyOpen: e.target.checked })}
-            />
-            فقط فروشگاه باز
-          </label>
+              <div className="filters">
+                <label>
+                  حداقل تخفیف
+                  <select
+                    value={String(minDiscount)}
+                    onChange={(e) => patch({ minDiscount: Number(e.target.value) })}
+                  >
+                    <option value="0">همه</option>
+                    <option value="20">۲۰٪+</option>
+                    <option value="30">۳۰٪+</option>
+                    <option value="50">۵۰٪+</option>
+                    <option value="70">۷۰٪+</option>
+                  </select>
+                </label>
+                <label>
+                  ترتیب
+                  <select
+                    value={sortMode}
+                    onChange={(e) => patch({ sortMode: e.target.value as SortMode })}
+                  >
+                    {Object.entries(SORT_MODES).map(([v, label]) => (
+                      <option key={v} value={v}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={sources.snapp}
+                    onChange={(e) => patch({ sources: { ...sources, snapp: e.target.checked } })}
+                  />
+                  اسنپ‌مارکت
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={sources.jet}
+                    onChange={(e) => patch({ sources: { ...sources, jet: e.target.checked } })}
+                  />
+                  دیجی‌کالا جت
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={sources.okala}
+                    onChange={(e) => patch({ sources: { ...sources, okala: e.target.checked } })}
+                  />
+                  اوکالا
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={onlyOpen}
+                    onChange={(e) => patch({ onlyOpen: e.target.checked })}
+                  />
+                  فقط فروشگاه باز
+                </label>
 
-          <div
-            className="segmented"
-            role="radiogroup"
-            aria-label="حالت نمایش"
-            style={{ marginInlineStart: 'auto' }}
-          >
-            <button
-              type="button"
-              role="radio"
-              aria-checked={viewMode === 'grid'}
-              onClick={() => setViewMode('grid')}
-              title="نمایش شبکه‌ای"
-            >
-              ▦
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={viewMode === 'compact'}
-              onClick={() => setViewMode('compact')}
-              title="نمایش فشرده"
-            >
-              ☰
-            </button>
-          </div>
-        </div>
-      )}
+                <div
+                  className="segmented"
+                  role="radiogroup"
+                  aria-label="حالت نمایش"
+                  style={{ marginInlineStart: 'auto' }}
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={viewMode === 'grid'}
+                    onClick={() => setViewMode('grid')}
+                    title="نمایش شبکه‌ای"
+                  >
+                    ▦
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={viewMode === 'compact'}
+                    onClick={() => setViewMode('compact')}
+                    title="نمایش فشرده"
+                  >
+                    ☰
+                  </button>
+                </div>
+              </div>
+            )}
 
-      {submittedQuery && (
-        <div className="filters">
-          <label>
-            ترتیب
-            <select
-              value={sortMode}
-              onChange={(e) => patch({ sortMode: e.target.value as SortMode })}
-            >
-              {Object.entries(SORT_MODES).map(([v, label]) => (
-                <option key={v} value={v}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={onlyOpen}
-              onChange={(e) => patch({ onlyOpen: e.target.checked })}
-            />
-            فقط فروشگاه باز
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={sources.jet}
-              onChange={(e) => patch({ sources: { ...sources, jet: e.target.checked } })}
-            />
-            دیجی‌کالا جت
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={sources.okala}
-              onChange={(e) => patch({ sources: { ...sources, okala: e.target.checked } })}
-            />
-            اوکالا
-          </label>
+            {submittedQuery && (
+              <div className="filters">
+                <label>
+                  حداقل تخفیف
+                  <select
+                    value={String(minDiscount)}
+                    onChange={(e) => patch({ minDiscount: Number(e.target.value) })}
+                  >
+                    <option value="0">همه</option>
+                    <option value="20">۲۰٪+</option>
+                    <option value="30">۳۰٪+</option>
+                    <option value="50">۵۰٪+</option>
+                    <option value="70">۷۰٪+</option>
+                  </select>
+                </label>
+                <label>
+                  ترتیب
+                  <select
+                    value={sortMode}
+                    onChange={(e) => patch({ sortMode: e.target.value as SortMode })}
+                  >
+                    {Object.entries(SORT_MODES).map(([v, label]) => (
+                      <option key={v} value={v}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={onlyOpen}
+                    onChange={(e) => patch({ onlyOpen: e.target.checked })}
+                  />
+                  فقط فروشگاه باز
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={sources.snapp}
+                    onChange={(e) => patch({ sources: { ...sources, snapp: e.target.checked } })}
+                  />
+                  اسنپ‌مارکت
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={sources.jet}
+                    onChange={(e) => patch({ sources: { ...sources, jet: e.target.checked } })}
+                  />
+                  دیجی‌کالا جت
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={sources.okala}
+                    onChange={(e) => patch({ sources: { ...sources, okala: e.target.checked } })}
+                  />
+                  اوکالا
+                </label>
 
-          <div
-            className="segmented"
-            role="radiogroup"
-            aria-label="حالت نمایش"
-            style={{ marginInlineStart: 'auto' }}
-          >
-            <button
-              type="button"
-              role="radio"
-              aria-checked={viewMode === 'grid'}
-              onClick={() => setViewMode('grid')}
-              title="نمایش شبکه‌ای"
-            >
-              ▦
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={viewMode === 'compact'}
-              onClick={() => setViewMode('compact')}
-              title="نمایش فشرده"
-            >
-              ☰
-            </button>
-          </div>
-        </div>
-      )}
+                <div
+                  className="segmented"
+                  role="radiogroup"
+                  aria-label="حالت نمایش"
+                  style={{ marginInlineStart: 'auto' }}
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={viewMode === 'grid'}
+                    onClick={() => setViewMode('grid')}
+                    title="نمایش شبکه‌ای"
+                  >
+                    ▦
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={viewMode === 'compact'}
+                    onClick={() => setViewMode('compact')}
+                    title="نمایش فشرده"
+                  >
+                    ☰
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Vendor filter: shown only after a search returns vendors */}
+                        {submittedQuery && search.data && search.data.offers.length > 0 && (
+                          <div className="filters vendor-filters">
+                            <span className="muted">فروشگاه‌ها:</span>
+                            {(() => {
+                              const vendors = [...new Set(search.data!.offers.map((o) => o.vendor.code))]
+                                .map((code) => search.data!.offers.find((o) => o.vendor.code === code)!.vendor)
+                                .sort((a, b) => a.name.localeCompare(b.name, 'fa'));
+                              return vendors.map((vendor) => (
+                                <label key={vendor.code}>
+                                  <input
+                                    type="checkbox"
+                                    checked={!hiddenVendors.includes(vendor.code)}
+                                    onChange={() => hideVendor(vendor.code)}
+                                  />
+                                  {vendor.name}
+                                </label>
+                              ));
+                            })()}
+                            {hiddenVendors.length > 0 && (
+                                              <button
+                                                type="button"
+                                                className="button"
+                                                style={{ fontSize: '11px', padding: '2px 8px' }}
+                                                onClick={showAllVendors}
+                                              >
+                                                انتخاب همه
+                                              </button>
+                                            )}
+                          </div>
+                        )}
 
       {useSettings.getState().recentQueries.length > 0 && !submittedQuery && !searchQuery && (
         <p className="muted">
@@ -499,27 +568,37 @@ export default function DealsAndSearchPage() {
       )}
 
       {/* Search results */}
-      {submittedQuery && search.data && (
-        <>
-          <p className="muted" style={{ marginTop: 0 }}>
-            {money.format(search.data.stats.vendorCount)} فروشگاه ·{' '}
-            {money.format(search.data.offers.length)} پیشنهاد
-          </p>
-          {searchNotes.length > 0 && <p className="note">{searchNotes.join(' — ')}</p>}
-          <div className={gridClass}>
-            {search.data.offers.map((offer, i) => (
-              <OfferCard
-                key={`${offer.platform}-${offer.vendor.code}-${offer.productId}`}
-                offer={offer}
-                highlight={i === 0}
-              />
-            ))}
-          </div>
-          {search.data.offers.length === 0 && (
-            <p className="empty">چیزی پیدا نشد. عبارت کوتاه‌تر امتحان کن.</p>
-          )}
-        </>
-      )}
+                  {submittedQuery && search.data && (
+                    <>
+                      <p className="muted" style={{ marginTop: 0 }}>
+                        {money.format(search.data.stats.vendorCount)} فروشگاه ·{' '}
+                        {money.format(search.data.offers.length)} پیشنهاد
+                      </p>
+                      {searchNotes.length > 0 && <p className="note">{searchNotes.join(' — ')}</p>}
+                      <div className={gridClass}>
+                        {search.data.offers
+                          .filter(
+                            (offer) => !hiddenVendors.includes(offer.vendor.code),
+                          )
+                          .map((offer, i) => (
+                            <OfferCard
+                              key={`${offer.platform}-${offer.vendor.code}-${offer.productId}`}
+                              offer={offer}
+                              highlight={i === 0}
+                            />
+                          ))}
+                      </div>
+                      {search.data.offers.length === 0 && (
+                        <p className="empty">چیزی پیدا نشد. عبارت کوتاه‌تر امتحان کن.</p>
+                      )}
+                      {search.data.offers.length > 0 &&
+                        search.data.offers.filter(
+                          (offer) => !hiddenVendors.includes(offer.vendor.code),
+                        ).length === 0 && (
+                          <p className="empty">هیچ پیشنهادی از فروشگاه‌های انتخاب‌شده نیست.</p>
+                        )}
+                    </>
+                  )}
 
       {!submittedQuery &&
         !dealsQuery.isPending &&

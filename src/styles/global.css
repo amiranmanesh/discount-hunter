@@ -691,7 +691,7 @@ a {
   cursor: pointer;
 }
 
-.filters select {
+.filters label select {
   min-height: 34px;
   padding: 5px 8px;
   border: 1px solid var(--border);
@@ -705,6 +705,37 @@ a {
   width: 18px;
   height: 18px;
   margin: 0;
+}
+
+.vendor-filters {
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.vendor-filters .muted {
+  align-self: center;
+  margin-inline-end: 4px;
+}
+
+.vendor-filters label {
+  min-height: 28px;
+  padding: 2px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.vendor-filters label:has(input:checked) {
+  border-color: var(--orange);
+  background: var(--orange-soft);
+}
+
+.vendor-filters .button {
+  align-self: center;
+  min-height: 28px;
+  padding: 2px 10px;
+  font-size: 11px;
 }
 
 /* Search --------------------------------------------------------------- */
@@ -1426,10 +1457,11 @@ a {
 /* Location chip menu */
 .location-menu {
   position: absolute;
-  inset-inline-start: 0;
+  inset-inline-end: 0;
   inset-block-start: calc(100% + 4px);
   z-index: 30;
   min-width: 240px;
+  max-width: min(260px, calc(100vw - 24px));
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);

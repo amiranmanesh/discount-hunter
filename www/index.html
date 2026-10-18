@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#ff5f00" />
+    <title>شکارچی تخفیف</title>
+    <style>
+      /* Matches the app's own tokens: bg #f6f7f9, brand #ff5f00, dark #171a20. */
+      :root {
+        color-scheme: light dark;
+        --bg: #f6f7f9;
+        --fg: #171a20;
+        --muted: #6b7280;
+        --card: #fff;
+        --border: #e5e7eb;
+        --brand: #ff5f00;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171a20;
+          --fg: #e5e7eb;
+          --muted: #9ca3af;
+          --card: #1f232b;
+          --border: #2d323c;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: system-ui, "Segoe UI", Tahoma, sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      img {
+        width: 88px;
+        height: 88px;
+        border-radius: 22px;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0;
+      }
+      #status {
+        color: var(--muted);
+        font-size: 14px;
+        min-height: 20px;
+        text-align: center;
+      }
+      #panel {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: min(420px, 100%);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      #panel.hidden {
+        display: none;
+      }
+      label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg);
+        color: var(--fg);
+        direction: ltr;
+        text-align: left;
+      }
+      button {
+        padding: 12px 18px;
+        font-size: 15px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--brand);
+        color: #fff;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .row button {
+        flex: 1;
+      }
+      #hint {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+      #gear {
+        position: fixed;
+        top: calc(env(safe-area-inset-top, 0px) + 10px);
+        inset-inline-end: 12px;
+        background: transparent;
+        border: 0;
+        font-size: 22px;
+        color: var(--muted);
+        padding: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="icon-192.png" alt="" />
+    <h1>شکارچی تخفیف</h1>
+    <div id="status">در حال اتصال به سرور…</div>
+
+    <div id="panel" class="hidden">
+      <label for="url">آدرس سرور (همان آدرسی که در مرورگر باز می‌کنی)</label>
+      <input
+        id="url"
+        type="url"
+        inputmode="url"
+        placeholder="http://192.168.88.88:3000"
+        autocomplete="off"
+      />
+      <div class="row">
+        <button id="save">ذخیره و اتصال</button>
+        <button id="cancel" class="hidden secondary">انصراف</button>
+      </div>
+      <div id="hint">
+        سرور را روی کامپیوتر با <code>npm start</code> (یا Docker) اجرا کن و
+        گوشی باید همین شبکه را داشته باشد. آدرس معمولاْ
+        <code>http://IP-کامپیوتر:3000</code> است.
+      </div>
+    </div>
+
+    <button id="gear" title="تنظیم آدرس سرور" aria-label="تنظیم آدرس سرور">⚙️</button>
+
+    <script>
+      // Two ways this page can reach a server, tried in order:
+      //
+      //  1. THE IN-APP SERVER (the normal path). The native foreground
+      //     service (ServerService) starts the bundled Node.js + Next.js on
+      //     the phone and exposes 127.0.0.1:3001/__shell/ready while it boots;
+      //     when /api/health answers, the ready endpoint hands over the app
+      //     URL. No PC, no Wi-Fi sharing, no setup — this is the app running
+      //     alone.
+      //  2. A REMOTE SERVER (optional fallback, kept from the old flow): a
+      //     user may still point the app at a PC/Docker deployment via the
+      //     picker below; the address lives in localStorage under KEY.
+      //
+      // A wrong address must never hard-fail: the picker always comes back
+      // after a few failed probes.
+      var KEY = "dh-server-url";
+      var HEALTH_TIMEOUT = 3000;
+      var PROBE_TRIES = 3;
+      var READY_URL = "http://127.0.0.1:3001/__shell/ready";
+      var LOCAL_BUDGET_MS = 25000; // the service extracts the bundle on first run
+
+      var statusEl = document.getElementById("status");
+      var panel = document.getElementById("panel");
+      var urlInput = document.getElementById("url");
+      var cancelBtn = document.getElementById("cancel");
+
+      function stored() {
+        try {
+          return localStorage.getItem(KEY);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function normalize(v) {
+        v = (v || "").trim().replace(/[۰-۹]/g, function (d) {
+          return String("۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+        });
+        if (!v) return null;
+        if (!/^https?:\/\//i.test(v)) v = "http://" + v;
+        return v.replace(/\/+$/, "");
+      }
+
+      function showPicker(message) {
+        panel.classList.remove("hidden");
+        urlInput.value = stored() || "";
+        cancelBtn.classList.toggle("hidden", !stored());
+        if (message) statusEl.textContent = message;
+        document.getElementById("gear").style.display = "none";
+      }
+
+      function hidePicker() {
+        panel.classList.add("hidden");
+        document.getElementById("gear").style.display = "";
+      }
+
+      function enter(base, tries, onFail) {
+        var controller = new AbortController();
+        var timer = setTimeout(function () {
+          controller.abort();
+        }, HEALTH_TIMEOUT);
+        fetch(base + "/api/health", {
+          cache: "no-store",
+          signal: controller.signal,
+        })
+          .then(function (r) {
+            clearTimeout(timer);
+            if (!r.ok) throw new Error("http " + r.status);
+            return r.json();
+          })
+          .then(function () {
+            statusEl.textContent = "سرور پیدا شد؛ در حال ورود…";
+            // Whole-WebView navigation: the app then owns the WebView, its
+            // service worker registers on its own origin, and /api/* is same-
+            // origin for every call.
+            window.location.replace(base + "/");
+          })
+          .catch(function (e) {
+            clearTimeout(timer);
+            if (tries > 1) {
+              setTimeout(function () {
+                enter(base, tries - 1, onFail);
+              }, 1200);
+            } else {
+              onFail(e);
+            }
+          });
+      }
+
+      /* --- path 1: the in-app server -------------------------------- */
+
+      function waitForLocalServer(deadline) {
+        var controller = new AbortController();
+        var timer = setTimeout(function () {
+          controller.abort();
+        }, 2500);
+        fetch(READY_URL, { cache: "no-store", signal: controller.signal })
+          .then(function (r) {
+            clearTimeout(timer);
+            if (!r.ok) throw new Error("http " + r.status);
+            return r.json();
+          })
+          .then(function (info) {
+            statusEl.textContent = "سرور داخلی روشن شد؛ در حال ورود…";
+            window.location.replace(info.app);
+          })
+          .catch(function () {
+            clearTimeout(timer);
+            if (Date.now() < deadline) {
+              setTimeout(function () {
+                waitForLocalServer(deadline);
+              }, 700);
+            } else {
+              localServerFailed();
+            }
+          });
+      }
+
+      function localServerFailed() {
+        // The bundled server never answered. On a phone this is a fault worth
+        // surfacing; a saved remote address is offered as the way to continue.
+        var saved = stored();
+        if (saved) {
+          statusEl.textContent = "سرور داخلی بالا نیامد؛ سرور ذخیره‌شده امتحان می‌شود…";
+          enter(saved, PROBE_TRIES, function () {
+            showPicker("سرور داخلی بالا نیامد. دوباره برنامه را باز کن یا سرور دیگر را وارد کن.");
+          });
+        } else {
+          showPicker(
+            "سرور داخلی بالا نیامد. برنامه را یک بار کامل ببند و باز کن؛ " +
+              "اگر باز نشد، می‌توانی به یک سرور دیگر وصل شوی."
+          );
+        }
+      }
+
+      /* --- path 2: a saved remote server ---------------------------- */
+
+      document.getElementById("save").addEventListener("click", function () {
+        var v = normalize(urlInput.value);
+        if (!v) {
+          statusEl.textContent = "اول آدرس را بنویس.";
+          return;
+        }
+        try {
+          localStorage.setItem(KEY, v);
+        } catch (e) {
+          /* private mode: still try this session */
+        }
+        statusEl.textContent = "در حال اتصال به سرور…";
+        hidePicker();
+        enter(v, PROBE_TRIES, function () {
+          showPicker("سرور جواب نمی‌دهد. روشن بودنش و درست بودن آدرس را بررسی کن.");
+        });
+      });
+
+      cancelBtn.addEventListener("click", function () {
+        hidePicker();
+        statusEl.textContent = "در حال اتصال به سرور…";
+        enter(stored(), PROBE_TRIES, function () {
+          showPicker("سرور جواب نمی‌دهد. روشن بودنش و درست بودن آدرس را بررسی کن.");
+        });
+      });
+
+      document.getElementById("gear").addEventListener("click", function () {
+        showPicker("آدرس فعلی: " + (stored() || "تنظیم نشده"));
+      });
+
+      urlInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") document.getElementById("save").click();
+      });
+
+      /* --- boot: the in-app server always gets the first chance ----- */
+
+      // A user who deliberately saved a remote address gets that first (their
+      // choice beats the default), and the local server is still the fallback
+      // if their remote one is unreachable.
+      var saved = stored();
+      if (saved) {
+        enter(saved, PROBE_TRIES, function () {
+          statusEl.textContent = "سرور ذخیره‌شده در دسترس نبود؛ سرور داخلی امتحان می‌شود…";
+          waitForLocalServer(Date.now() + 8000);
+        });
+      } else {
+        statusEl.textContent = "در حال روشن کردن سرور داخلی…";
+        waitForLocalServer(Date.now() + LOCAL_BUDGET_MS);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,88 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "com.discount.hunter"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.discount.hunter"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 2
+        versionName "1.1"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // DH_ABIS=arm64-v8a builds a phone-sized APK (~45 MB instead of ~86).
+        // Both ABIs (the default) keep the emulator installable too.
+        if (System.getenv('DH_ABIS')) {
+            ndk { abiFilters = System.getenv('DH_ABIS').split(',') as List }
+        }
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        // Self-signed release key so the APK installs outside Gradle's debug
+        // certificate; CI can override every value via env vars.
+        release {
+            def ksFile = rootProject.file(System.getenv('DH_KEYSTORE') ?: 'discount-hunter-release.jks')
+            if (ksFile.exists()) {
+                storeFile ksFile
+                storePassword System.getenv('DH_STORE_PASSWORD') ?: 'discounthunter2026'
+                keyAlias System.getenv('DH_KEY_ALIAS') ?: 'discount-hunter'
+                keyPassword System.getenv('DH_KEY_PASSWORD') ?: 'discounthunter2026'
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // R8 + resource shrinking: the shell carries a few MB of unused
+            // AppCompat/Capacitor resources. Capacitor ships its own keep
+            // rules (consumerProguardFiles in its library), so this is safe.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+    // The app is Persian-only; a language-split bundle buys nothing and
+    // complicates sideloading of the universal APK.
+    bundle {
+        language { enableSplit = false }
+    }
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/DEPENDENCIES', 'META-INF/LICENSE', 'META-INF/LICENSE.txt',
+                         'META-INF/NOTICE', 'META-INF/NOTICE.txt', 'META-INF/*.kotlin_module']
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

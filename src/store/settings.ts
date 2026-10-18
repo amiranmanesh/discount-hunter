@@ -30,7 +30,13 @@ export interface Settings {
    * quoted in full.
    */
   snappPro: boolean;
-}
+    /**
+     * Vendor codes the user has toggled OFF in the search vendor filter.
+     * Empty = every vendor shows. Non-empty = those vendors are hidden.
+     * Starts empty so every search opens with all vendors visible.
+     */
+    hiddenVendors: string[];
+  }
 
 interface State extends Settings {
   sessions: Partial<Record<PlatformId, Session | null>>;
@@ -44,9 +50,11 @@ interface State extends Settings {
   setViewMode: (mode: ViewMode) => void;
   patch: (settings: Partial<Settings>) => void;
   rememberQuery: (query: string) => void;
-  setSession: (platform: PlatformId, session: Session | null) => void;
-  setLimit: (platform: PlatformId, limit: RateLimitState) => void;
-}
+    setSession: (platform: PlatformId, session: Session | null) => void;
+      setLimit: (platform: PlatformId, limit: RateLimitState) => void;
+      hideVendor: (vendorCode: string) => void;
+      showAllVendors: () => void;
+    }
 
 function sameLocation(a: Location | null, b: Location | null): boolean {
   if (!a || !b) return false;
@@ -66,9 +74,10 @@ export const useSettings = create<State>()(
       onlyCampaign: false,
       onlyOpen: true,
       minDiscount: 0,
-      recentQueries: [],
-      snappPro: false,
-      sessions: { snapp: null, jet: null, okala: null },
+            recentQueries: [],
+                  snappPro: false,
+                  hiddenVendors: [],
+            sessions: { snapp: null, jet: null, okala: null },
       limits: { snapp: emptyLimit(), jet: emptyLimit(), okala: emptyLimit() },
 
       setLocation: (location) =>
@@ -130,10 +139,17 @@ export const useSettings = create<State>()(
           recentQueries: [query, ...state.recentQueries.filter((q) => q !== query)].slice(0, 8),
         })),
       setSession: (platform, session) =>
-        set((state) => ({ sessions: { ...state.sessions, [platform]: session } })),
-      setLimit: (platform, limit) =>
-        set((state) => ({ limits: { ...state.limits, [platform]: limit } })),
-    }),
+                    set((state) => ({ sessions: { ...state.sessions, [platform]: session } })),
+                  setLimit: (platform, limit) =>
+                    set((state) => ({ limits: { ...state.limits, [platform]: limit } })),
+                  hideVendor: (vendorCode) =>
+                                set((state) => ({
+                                  hiddenVendors: state.hiddenVendors.includes(vendorCode)
+                                    ? state.hiddenVendors.filter((c) => c !== vendorCode)
+                                    : [...state.hiddenVendors, vendorCode],
+                                })),
+                  showAllVendors: () => set({ hiddenVendors: [] }),
+                }),
     {
       name: 'discount-hunter',
       version: 5,
@@ -160,7 +176,8 @@ export const useSettings = create<State>()(
           savedLocations,
           viewMode: state.viewMode ?? 'grid',
           snappPro: state.snappPro ?? false,
-          sources: { snapp: true, jet: true, okala: true, ...(state.sources ?? {}) },
+                    hiddenVendors: Array.isArray(state.hiddenVendors) ? state.hiddenVendors : [],
+                    sources: { snapp: true, jet: true, okala: true, ...(state.sources ?? {}) },
           limits: {
             snapp: emptyLimit(),
             jet: emptyLimit(),
@@ -171,20 +188,21 @@ export const useSettings = create<State>()(
         } as State;
       },
       partialize: (state) => ({
-        phone: state.phone,
-        location: state.location,
-        savedLocations: state.savedLocations,
-        viewMode: state.viewMode,
-        sortMode: state.sortMode,
-        sources: state.sources,
-        onlyCampaign: state.onlyCampaign,
-        onlyOpen: state.onlyOpen,
-        minDiscount: state.minDiscount,
-        recentQueries: state.recentQueries,
-        snappPro: state.snappPro,
-        sessions: state.sessions,
-        limits: state.limits,
-      }),
+              phone: state.phone,
+              location: state.location,
+              savedLocations: state.savedLocations,
+              viewMode: state.viewMode,
+              sortMode: state.sortMode,
+              sources: state.sources,
+              onlyCampaign: state.onlyCampaign,
+              onlyOpen: state.onlyOpen,
+              minDiscount: state.minDiscount,
+              recentQueries: state.recentQueries,
+              snappPro: state.snappPro,
+                      hiddenVendors: Array.isArray(state.hiddenVendors) ? state.hiddenVendors : [],
+                      sessions: state.sessions,
+              limits: state.limits,
+            }),
     },
   ),
 );

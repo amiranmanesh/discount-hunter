@@ -14,6 +14,13 @@ export default tseslint.config(
       'coverage/**',
       'node_modules/**',
       'public/icons/**',
+      // Gradle's generated tree carries copies of the bridge JS; the only
+      // hand-written files under android/ are a handful of resources.
+      'android/**',
+      'www/**',
+      // CommonJS on purpose: runs standalone under the Node binary bundled
+      // in the APK, outside this app's module system and its lint scope.
+      'android-server/**',
       // Tooling packs vendored into the working copy; not this project's source.
       '.claude/**',
       '.agents/**',

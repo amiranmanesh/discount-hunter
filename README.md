@@ -137,6 +137,25 @@ Installed, it opens full screen, keeps a working shell offline and says when a n
 version is ready. Installing needs HTTPS with a trusted certificate — see
 [docs/DEPLOY.md](docs/DEPLOY.md).
 
+### Android APK
+
+There is also a native shell (`android/`, [Capacitor](https://capacitorjs.com)):
+a real app with its own icon and launcher, no browser around it. It cannot be a
+static copy of the site — every platform call goes through this server's proxy —
+so on first run it asks for your server address once (the same one you type in
+the browser), probes `/api/health`, and enters the app. Everything after that is
+the web app itself, served by your own server.
+
+```bash
+npm run android:build      # cap sync + assembleRelease
+# → android/app/build/outputs/apk/release/app-release.apk
+```
+
+The build needs a JDK (21) and the Android SDK; `android/build.bat` pins both to
+wherever you keep them, and `android/local.properties` carries `sdk.dir`. The
+APK is signed with `android/discount-hunter-release.jks` — keep that file, an
+update must be signed with the same key.
+
 ## Set your delivery point
 
 **تنظیمات** → **استفاده از موقعیت فعلی** for GPS, or type coordinates. If you are

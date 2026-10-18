@@ -16,8 +16,19 @@ const money = new Intl.NumberFormat('en-US');
 
 export default function SearchPage() {
   const settings = useSettings();
-  const { location, sortMode, sources, onlyCampaign, onlyOpen, minDiscount, snappPro, patch } =
-    settings;
+  const {
+    location,
+    sortMode,
+    sources,
+    onlyCampaign,
+    onlyOpen,
+    minDiscount,
+    snappPro,
+    hiddenVendors,
+    hideVendor,
+    showAllVendors,
+    patch,
+  } = settings;
   const { data: tokens, isPending: tokensPending } = useTokens();
 
   const [query, setQuery] = useState('');
@@ -133,52 +144,105 @@ export default function SearchPage() {
       </form>
 
       <div className="filters">
-        <label>
-          ترتیب
-          <select
-            value={sortMode}
-            onChange={(event) => patch({ sortMode: event.target.value as SortMode })}
-          >
-            {Object.entries(SORT_MODES).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={onlyCampaign}
-            onChange={(event) => patch({ onlyCampaign: event.target.checked })}
-          />
-          فقط تخفیف کمپینی
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={onlyOpen}
-            onChange={(event) => patch({ onlyOpen: event.target.checked })}
-          />
-          فقط فروشگاه باز
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={sources.jet}
-            onChange={(event) => patch({ sources: { ...sources, jet: event.target.checked } })}
-          />
-          دیجی‌کالا جت
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={sources.okala}
-            onChange={(event) => patch({ sources: { ...sources, okala: event.target.checked } })}
-          />
-          اوکالا
-        </label>
-      </div>
+              <label>
+                ترتیب
+                <select
+                  value={sortMode}
+                  onChange={(event) => patch({ sortMode: event.target.value as SortMode })}
+                >
+                  {Object.entries(SORT_MODES).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                حداقل تخفیف
+                <select
+                  value={String(minDiscount)}
+                  onChange={(event) => patch({ minDiscount: Number(event.target.value) })}
+                >
+                  <option value="0">همه</option>
+                  <option value="20">۲۰٪+</option>
+                  <option value="30">۳۰٪+</option>
+                  <option value="50">۵۰٪+</option>
+                  <option value="70">۷۰٪+</option>
+                </select>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={onlyCampaign}
+                  onChange={(event) => patch({ onlyCampaign: event.target.checked })}
+                />
+                فقط تخفیف کمپینی
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={onlyOpen}
+                  onChange={(event) => patch({ onlyOpen: event.target.checked })}
+                />
+                فقط فروشگاه باز
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={sources.snapp}
+                  onChange={(event) => patch({ sources: { ...sources, snapp: event.target.checked } })}
+                />
+                اسنپ‌مارکت
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={sources.jet}
+                  onChange={(event) => patch({ sources: { ...sources, jet: event.target.checked } })}
+                />
+                دیجی‌کالا جت
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={sources.okala}
+                  onChange={(event) => patch({ sources: { ...sources, okala: event.target.checked } })}
+                />
+                اوکالا
+              </label>
+            </div>
+
+            {/* Vendor filter: shown only after a search returns vendors */}
+                        {result && result.offers.length > 0 && (
+                          <div className="filters vendor-filters">
+                            <span className="muted">فروشگاه‌ها:</span>
+                            {(() => {
+                              const vendors = [...new Set(result.offers.map((o) => o.vendor.code))]
+                                .map((code) => result.offers.find((o) => o.vendor.code === code)!.vendor)
+                                .sort((a, b) => a.name.localeCompare(b.name, 'fa'));
+                              return vendors.map((vendor) => (
+                                <label key={vendor.code}>
+                                  <input
+                                    type="checkbox"
+                                    checked={!hiddenVendors.includes(vendor.code)}
+                                    onChange={() => hideVendor(vendor.code)}
+                                  />
+                                  {vendor.name}
+                                </label>
+                              ));
+                            })()}
+                            {hiddenVendors.length > 0 && (
+                              <button
+                                type="button"
+                                className="button"
+                                style={{ fontSize: '11px', padding: '2px 8px' }}
+                                onClick={showAllVendors}
+                              >
+                                نمایش همه
+                              </button>
+                            )}
+                          </div>
+                        )}
 
       {settings.recentQueries.length > 0 && !submitted && (
         <p className="muted">
@@ -215,30 +279,40 @@ export default function SearchPage() {
       {notes.length > 0 && <p className="note">{notes.join(' — ')}</p>}
 
       {result && (
-        <>
-          <p className="muted" style={{ marginTop: 0 }}>
-            {money.format(result.stats.vendorCount)} فروشگاه اطراف ·{' '}
-            {money.format(result.offers.length)} پیشنهاد · اسنپ‌مارکت{' '}
-            {money.format(result.stats.bySource.snapp)} · جت{' '}
-            {money.format(result.stats.bySource.jet)} · اوکالا{' '}
-            {money.format(result.stats.bySource.okala)}
-          </p>
-          <div className="offer-grid">
-            {result.offers.map((offer, index) => (
-              <OfferCard
-                key={`${offer.platform}-${offer.vendor.code}-${offer.productId}`}
-                offer={offer}
-                highlight={index === 0}
-              />
-            ))}
-          </div>
-          {result.offers.length === 0 && (
-            <p className="empty">
-              چیزی پیدا نشد. تیک «فقط تخفیف کمپینی» را بردار یا عبارت کوتاه‌تری امتحان کن.
-            </p>
-          )}
-        </>
-      )}
+                    <>
+                      <p className="muted" style={{ marginTop: 0 }}>
+                        {money.format(result.stats.vendorCount)} فروشگاه اطراف ·{' '}
+                        {money.format(result.offers.length)} پیشنهاد · اسنپ‌مارکت{' '}
+                        {money.format(result.stats.bySource.snapp)} · جت{' '}
+                        {money.format(result.stats.bySource.jet)} · اوکالا{' '}
+                        {money.format(result.stats.bySource.okala)}
+                      </p>
+                      <div className="offer-grid">
+                        {result.offers
+                          .filter(
+                            (offer) => !hiddenVendors.includes(offer.vendor.code),
+                          )
+                          .map((offer, index) => (
+                            <OfferCard
+                              key={`${offer.platform}-${offer.vendor.code}-${offer.productId}`}
+                              offer={offer}
+                              highlight={index === 0}
+                            />
+                          ))}
+                      </div>
+                      {result.offers.length === 0 && (
+                        <p className="empty">
+                          چیزی پیدا نشد. تیک «فقط تخفیف کمپینی» را بردار یا عبارت کوتاه‌تری امتحان کن.
+                        </p>
+                      )}
+                      {result.offers.length > 0 &&
+                        result.offers.filter(
+                          (offer) => !hiddenVendors.includes(offer.vendor.code),
+                        ).length === 0 && (
+                          <p className="empty">هیچ پیشنهادی از فروشگاه‌های انتخاب‌شده نیست.</p>
+                        )}
+                    </>
+                  )}
     </>
   );
 }

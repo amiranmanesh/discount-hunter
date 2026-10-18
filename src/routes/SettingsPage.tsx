@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as jet from '../api/jet';
 import { useSettings } from '../store/settings';
@@ -279,6 +279,8 @@ export default function SettingsPage() {
 
       <InstallCard />
 
+      <ShareCard />
+
       <section className="card stack" style={{ marginTop: 10 }}>
         <b>هزینهٔ ارسال</b>
         <label className="toggle">
@@ -362,6 +364,75 @@ function ManualCoordinates({
 }
 
 const never = () => () => {};
+
+/**
+ * Where this very server can be reached from other devices. On the phone the
+ * app IS the server, so the URL printed here is what a laptop or a second
+ * phone types to use the same app, the same accounts and the same cache.
+ */
+function ShareCard() {
+  const [lan, setLan] = useState<string[] | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    fetch('/api/addresses', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { lan: [] }))
+      .then((j: { lan?: string[] }) => live && setLan(j.lan ?? []))
+      .catch(() => live && setLan([]));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // Nothing to share when the server sees no private interface at all, and
+  // nothing new when the only address is the one already in the address bar.
+  if (!lan || lan.length === 0) return null;
+  const here = window.location.origin + '/';
+  const others = lan.filter((u) => u !== here);
+  if (others.length === 0) return null;
+
+  const copy = (u: string) => {
+    void navigator.clipboard?.writeText(u).then(
+      () => {
+        setCopied(u);
+        setTimeout(() => setCopied(null), 2000);
+      },
+      () => setCopied(null),
+    );
+  };
+
+  return (
+    <section className="card stack" style={{ marginTop: 10 }}>
+      <b>اتصال بقیه دستگاه‌ها</b>
+      <p className="muted" style={{ margin: 0 }}>
+        این برنامه روی همین دستگاه سرور خودش را اجرا می‌کند. هر دستگاهی در همین وای‌فای این نشانی را
+        باز کند، همان برنامه را با همان حساب‌ها می‌بیند.
+      </p>
+      {others.map((u) => (
+        <div className="row" key={u} style={{ display: 'flex', gap: 8 }}>
+          <code
+            style={{
+              flex: 1,
+              direction: 'ltr',
+              textAlign: 'left',
+              padding: '10px 12px',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              background: 'var(--bg)',
+              fontSize: 14,
+            }}
+          >
+            {u}
+          </code>
+          <button type="button" className="button" onClick={() => copy(u)} aria-label="کپی نشانی">
+            {copied === u ? 'کپی شد' : 'کپی'}
+          </button>
+        </div>
+      ))}
+    </section>
+  );
+}
 
 function InstallCard() {
   const standalone = usePwa((state) => state.standalone);
